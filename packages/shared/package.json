@@ -1,0 +1,21 @@
+{
+  "name": "@effect_lab/shared",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "effect": "^4.0.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}
