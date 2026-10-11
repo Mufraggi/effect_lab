@@ -23,8 +23,14 @@ const tagTo = ref("effect-4")
 </script>
 
 <template>
-  <main>
-    <h1>Optics + atom-vue + AtomHttpApi</h1>
+  <section class="page">
+    <header>
+      <h1>Posts</h1>
+      <p class="lead">
+        L'état serveur, édité par optics : le reducer optimiste décrit
+        <em>où</em> l'édition atterrit dans le cache.
+      </p>
+    </header>
 
     <p v-if="loading" class="status">Chargement…</p>
     <p v-if="readError" class="error" role="alert">Erreur de lecture : {{ readError }}</p>
@@ -62,17 +68,21 @@ const tagTo = ref("effect-4")
       @save="save"
       @cancel="editing = null"
     />
-  </main>
+  </section>
 </template>
 
 <style scoped>
-main {
-  font-family: system-ui, sans-serif;
-  max-width: 44rem;
-  margin: 2rem auto;
-  padding: 0 1rem;
+.page {
   display: grid;
   gap: 1.5rem;
+}
+.lead {
+  color: #555;
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+}
+h1 {
+  margin: 0;
 }
 .status {
   color: #666;

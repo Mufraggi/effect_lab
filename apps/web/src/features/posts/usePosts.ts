@@ -10,7 +10,7 @@ import {
   retagPosts,
   updateTitle
 } from "./posts.js"
-import { useMutation } from "./useMutation.js"
+import { useMutation } from "../../shared/useMutation.js"
 
 export interface UsePosts {
   readonly posts: ComputedRef<ReadonlyArray<Post>>

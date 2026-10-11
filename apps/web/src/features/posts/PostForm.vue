@@ -11,7 +11,7 @@ import {
   type Post,
   type PostPatch
 } from "@effect_lab/shared"
-import { opticField } from "./opticField.js"
+import { opticField } from "../../shared/opticField.js"
 
 const props = defineProps<{ post: Post }>()
 const emit = defineEmits<{ save: [PostPatch]; cancel: [] }>()
