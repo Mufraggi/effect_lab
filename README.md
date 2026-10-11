@@ -50,6 +50,7 @@ Les optics feuilles vivent dans `packages/shared/src/optics.ts` et **nulle part 
 | L'optic passé en **paramètre** : un helper, tous les champs, toutes les profondeurs | `apps/web/src/shared/opticField.ts` |
 | Une table `[optic]` qui **rebase** un brouillon sur l'état serveur, champ par champ | `apps/web/src/shared/rebase.ts` + `features/posts/postDraft.ts` |
 | Traversal sur **deux niveaux de tableau** imbriqués, et le filtre dans le chemin | `packages/exemple/src/optic/nestedTraversal.ts` |
+| Un optic qui **échoue à focaliser** : `check`, `getResult`, et l'`Issue` partagée avec `Schema` | `packages/exemple/src/optic/validated.ts` |
 
 > **`forEach` n'aplatit pas deux niveaux de tableau.** Sur un
 > `Traversal<S, A[]>` il te redonne le tableau, pas l'élément : un `forEach`
@@ -57,6 +58,14 @@ Les optics feuilles vivent dans `packages/shared/src/optics.ts` et **nulle part 
 > signature — `forEach` prend `(iso) => Optional<A, B>`, et un `Optional` n'a
 > qu'un seul focus. Aucun chaînage n'en sortira.
 >
+> **Un optic peut échouer à focaliser, et l'échec est une valeur `Schema`.**
+> C'est ce qui distingue `Optic` de Monocle : `getResult` renvoie un
+> `Result<A, SchemaIssue.Issue>`, et cette `Issue` est exactement celle qu'un
+> décodage `Schema` raté produit — même type, même formatter. Attention au
+> piège : la moitié agréable de l'API (`get`, `replace`) avale l'échec.
+> `replace` à travers un optic qui ne focalise pas te **rend l'original, sans
+> un mot**. Démontré dans `packages/exemple/src/optic/validated.ts`.
+
 > Mais ce n'est pas un mur : **un lens vers un tableau *est* une traversal sur
 > ses éléments** (c'est pourquoi `_tags`, un `Lens<Post, ReadonlyArray<string>>`,
 > accepte `modifyAll((tag) => …)`). Il suffit donc de construire ce lens à la
