@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, Ref } from "effect"
 import {
-  _everyTags,
+  _everyTag,
   _postById,
   applyPatch,
   NotFound,
@@ -77,11 +77,13 @@ export class PostsRepo extends Context.Service<PostsRepo, {
         )
 
       // One traversal renames a tag across every post, at any list length.
+      //
+      // `_everyTag` focuses the tag *strings*, not the tag arrays, so this is
+      // the whole rewrite — there is no `map` left to write. Getting there
+      // needed `flatten`, because `forEach` alone stops at the inner array.
       const retag = (from: string, to: string) =>
         Ref.modify(ref, (posts) => {
-          const next = _everyTags.modifyAll(
-            (tags) => tags.map((tag) => (tag === from ? to : tag))
-          )(posts)
+          const next = _everyTag.modifyAll((tag) => (tag === from ? to : tag))(posts)
           return [next, next] as const
         })
 

@@ -43,18 +43,28 @@ Les optics feuilles vivent dans `packages/shared/src/optics.ts` et **nulle part 
 | --- | --- |
 | Une table `[optic, lecteur]` qui applique un patch partiel — ajouter un champ = une ligne | `packages/shared/src/optics.ts` (`patchFields`) |
 | `refine` pour adresser un post **par id**, sans index | `optics.ts` (`_postById`, `_titleById`) |
-| Une traversal qui réécrit un tag sur toute la collection | `apps/api/src/repo.ts` (`retag`) |
+| Une traversal qui réécrit un tag sur toute la collection, **tag par tag** | `apps/api/src/repo.ts` (`retag`) |
+| `flatten` : franchir **deux niveaux de tableau**, que `forEach` ne traverse pas | `optics.ts` (`flatten`, `_everyTag`) |
 | `optionalKey` : écrire `undefined` **supprime** la clé | `optics.ts` (`reconcilePublication`) |
 | L'optic comme **reducer optimiste** — il décrit où l'édition atterrit dans le cache | `apps/web/src/features/posts/posts.ts` |
 | L'optic passé en **paramètre** : un helper, tous les champs, toutes les profondeurs | `apps/web/src/shared/opticField.ts` |
 | Une table `[optic]` qui **rebase** un brouillon sur l'état serveur, champ par champ | `apps/web/src/shared/rebase.ts` + `features/posts/postDraft.ts` |
 | Traversal sur **deux niveaux de tableau** imbriqués, et le filtre dans le chemin | `packages/exemple/src/optic/nestedTraversal.ts` |
 
-> Une traversal **n'aplatit pas** deux niveaux de tableau : `forEach` sur un
-> `Traversal<S, A[]>` te redonne le tableau, pas l'élément. Un `forEach`
-> imbriqué compile et ne fait silencieusement rien — le travail élément par
-> élément se fait dans le `map` à l'intérieur du `modifyAll`. Démontré et
-> asserté dans `packages/exemple/src/optic/nestedTraversal.ts`.
+> **`forEach` n'aplatit pas deux niveaux de tableau.** Sur un
+> `Traversal<S, A[]>` il te redonne le tableau, pas l'élément : un `forEach`
+> imbriqué compile et ne fait silencieusement rien. La cause est dans la
+> signature — `forEach` prend `(iso) => Optional<A, B>`, et un `Optional` n'a
+> qu'un seul focus. Aucun chaînage n'en sortira.
+>
+> Mais ce n'est pas un mur : **un lens vers un tableau *est* une traversal sur
+> ses éléments** (c'est pourquoi `_tags`, un `Lens<Post, ReadonlyArray<string>>`,
+> accepte `modifyAll((tag) => …)`). Il suffit donc de construire ce lens à la
+> main — lire les feuilles dans l'ordre, les réécrire dans les mêmes
+> emplacements. C'est `flatten` dans `optics.ts`, générique sur deux optics,
+> valable pour les écritures qui préservent la longueur (ce que `modifyAll`
+> fait). Les deux faces sont assertées : `optics.assert.ts` et
+> `packages/exemple/src/optic/nestedTraversal.ts`.
 
 ## Scripts
 

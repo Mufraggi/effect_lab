@@ -7,12 +7,14 @@
  */
 import { Optic } from "effect"
 import {
+  _everyTag,
   _everyTags,
   _postById,
   _publishedAt,
   _titleById,
   _title,
-  applyPatch
+  applyPatch,
+  flatten
 } from "./optics.js"
 import type { Post } from "./schemas.js"
 
@@ -73,6 +75,66 @@ const tests: Array<[string, () => void]> = [
   ["a traversal rewrites tags across every post in one expression", () => {
     const next = _everyTags.modifyAll((tags) => tags.map((t) => (t === "effect" ? "effect-4" : t)))(posts)
     assert.deepEqual(next.map((p) => p.tags), [["effect-4", "ts"], ["optics"]])
+  }],
+
+  // -------------------------------------------------------------------------
+  // The two-level wall, and the way through it.
+  // -------------------------------------------------------------------------
+
+  ["forEach stops at the inner array — the wall itself", () => {
+    const focused = Optic.getAll(_everyTags)(posts)
+    assert.equal(focused.length, 2, "one entry per post, not per tag")
+    assert.equal(Array.isArray(focused[0]), true, "each entry is an array, not a string")
+  }],
+
+  ["flatten focuses the leaves, in order, across the whole collection", () => {
+    assert.deepEqual(Optic.getAll(_everyTag)(posts), ["effect", "ts", "optics"])
+  }],
+
+  ["the rename is now element by element, with no map in the caller", () => {
+    const next = _everyTag.modifyAll((tag) => (tag === "effect" ? "effect-4" : tag))(posts)
+    assert.deepEqual(next.map((p) => p.tags), [["effect-4", "ts"], ["optics"]])
+    assert.deepEqual(posts.map((p) => p.tags), [["effect", "ts"], ["optics"]], "original intact")
+  }],
+
+  ["an empty inner array is simply never visited", () => {
+    const withEmpty: ReadonlyArray<Post> = [
+      { ...posts[0]!, tags: [] },
+      posts[1]!
+    ]
+    assert.deepEqual(Optic.getAll(_everyTag)(withEmpty), ["optics"])
+    const next = _everyTag.modifyAll((tag) => tag.toUpperCase())(withEmpty)
+    assert.deepEqual(next.map((p) => p.tags), [[], ["OPTICS"]], "the empty slot stays empty")
+  }],
+
+  ["an empty collection is handled, and no slot is invented", () => {
+    assert.deepEqual(Optic.getAll(_everyTag)([]), [])
+    assert.deepEqual(_everyTag.modifyAll((tag) => tag + "!")([]), [])
+  }],
+
+  ["flatten obeys the lens laws for a length-preserving write", () => {
+    // get(replace(a, s)) === a
+    const written = _everyTag.replace(["x", "y", "z"], posts)
+    assert.deepEqual(Optic.getAll(_everyTag)(written), ["x", "y", "z"])
+    // …and the leaves land back in the slots they came from.
+    assert.deepEqual(written.map((p) => p.tags), [["x", "y"], ["z"]])
+    // replace(get(s), s) === s
+    assert.deepEqual(_everyTag.replace(Optic.getAll(_everyTag)(posts), posts), posts)
+  }],
+
+  ["flatten is generic: the same combinator on a different shape", () => {
+    // Nothing about `flatten` knows what a Post is — it takes two optics.
+    type Row = { readonly cells: ReadonlyArray<number> }
+    type Grid = { readonly rows: ReadonlyArray<Row> }
+    const grid: Grid = { rows: [{ cells: [1, 2] }, { cells: [3] }] }
+
+    const _everyCell = flatten(
+      Optic.id<Grid>().key("rows"),
+      Optic.id<Row>().key("cells")
+    )
+    assert.deepEqual(Optic.getAll(_everyCell)(grid), [1, 2, 3])
+    const doubled = _everyCell.modifyAll((n) => n * 2)(grid)
+    assert.deepEqual(doubled.rows.map((r) => r.cells), [[2, 4], [6]])
   }],
 
   ["optionalKey removes the key rather than setting it to undefined", () => {
