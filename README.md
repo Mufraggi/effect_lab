@@ -44,7 +44,6 @@ Les optics feuilles vivent dans `packages/shared/src/optics.ts` et **nulle part 
 | Une table `[optic, lecteur]` qui applique un patch partiel — ajouter un champ = une ligne | `packages/shared/src/optics.ts` (`patchFields`) |
 | `refine` pour adresser un post **par id**, sans index | `optics.ts` (`_postById`, `_titleById`) |
 | Une traversal qui réécrit un tag sur toute la collection | `apps/api/src/repo.ts` (`retag`) |
-| Le filtre **dans le chemin** (`_draftVisibility`) | `optics.ts` |
 | `optionalKey` : écrire `undefined` **supprime** la clé | `optics.ts` (`reconcilePublication`) |
 | L'optic comme **reducer optimiste** — il décrit où l'édition atterrit dans le cache | `apps/web/src/features/posts/posts.ts` |
 | L'optic passé en **paramètre** : un helper, tous les champs, toutes les profondeurs | `apps/web/src/shared/opticField.ts` |

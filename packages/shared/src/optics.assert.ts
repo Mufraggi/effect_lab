@@ -7,7 +7,6 @@
  */
 import { Optic } from "effect"
 import {
-  _draftVisibility,
   _everyTags,
   _postById,
   _publishedAt,
@@ -74,12 +73,6 @@ const tests: Array<[string, () => void]> = [
   ["a traversal rewrites tags across every post in one expression", () => {
     const next = _everyTags.modifyAll((tags) => tags.map((t) => (t === "effect" ? "effect-4" : t)))(posts)
     assert.deepEqual(next.map((p) => p.tags), [["effect-4", "ts"], ["optics"]])
-  }],
-
-  ["a filter in the path reads only drafts, yet still writes", () => {
-    assert.deepEqual(Optic.getAll(_draftVisibility)(posts), ["draft"])
-    const next = _draftVisibility.modifyAll(() => "public" as const)(posts)
-    assert.deepEqual(next.map((p) => p.meta.visibility), ["public", "public"])
   }],
 
   ["optionalKey removes the key rather than setting it to undefined", () => {

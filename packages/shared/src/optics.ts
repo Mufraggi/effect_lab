@@ -1,5 +1,5 @@
 import { Optic } from "effect"
-import type { Meta, Post, PostPatch, Visibility } from "./schemas.js"
+import type { Post, PostPatch, Visibility } from "./schemas.js"
 
 // ---------------------------------------------------------------------------
 // Leaf optics — described once, on a single Post.
@@ -98,16 +98,3 @@ export const _titleById = (id: number) =>
 
 /** Every tag array in the collection — one expression, any number of posts. */
 export const _everyTags = _posts.forEach(() => _tags)
-
-/**
- * Only the visibility of drafts: the filter is part of the path, so a write
- * through this optic cannot touch an already-public post.
- *
- * Note the `refine` sits on `meta`, not on `meta.visibility`. Refining the
- * field itself would narrow the focus to `"draft"` in *both* directions and
- * make the write we want (`"public"`) a type error — `refine` is not a
- * read-only filter.
- */
-export const _draftVisibility = _posts.forEach((post) =>
-  post.key("meta").refine((m): m is Meta => m.visibility === "draft").key("visibility")
-)
