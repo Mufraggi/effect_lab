@@ -12,18 +12,18 @@ Le premier article de la série porte sur `Optic`. Ce repo en est la démonstrat
 - `packages/exemple` — snippets isolés pour l'article
 
 Le front est organisé en **vertical slices** : une route = un dossier autonome.
+Ajouter un exemple = un dossier sous `features/` et une entrée dans le router.
 
 ```
 apps/web/src/
   app/                  shell + router
   features/
     posts/              optics sur l'état serveur (atom, optimiste)
-    todo-optic/         optics purs, état local, aucun serveur
   shared/               helpers transverses (opticField, useMutation)
 ```
 
 Les routes sont chargées à la demande, donc la frontière de slice est aussi
-celle du bundle : la page todo pèse 3 Ko et n'embarque pas la stack HTTP.
+celle du bundle : une slice ne coûte que ce qu'elle vaut à qui y navigue.
 
 ## Démarrage
 
@@ -48,13 +48,13 @@ Les optics feuilles vivent dans `packages/shared/src/optics.ts` et **nulle part 
 | `optionalKey` : écrire `undefined` **supprime** la clé | `optics.ts` (`reconcilePublication`) |
 | L'optic comme **reducer optimiste** — il décrit où l'édition atterrit dans le cache | `apps/web/src/features/posts/posts.ts` |
 | L'optic passé en **paramètre** : un helper, tous les champs, toutes les profondeurs | `apps/web/src/shared/opticField.ts` |
-| Traversal sur **deux niveaux de tableau** imbriqués, et le filtre dans le chemin | `apps/web/src/features/todo-optic/todo.ts` |
+| Traversal sur **deux niveaux de tableau** imbriqués, et le filtre dans le chemin | `packages/exemple/src/optic/nestedTraversal.ts` |
 
 > Une traversal **n'aplatit pas** deux niveaux de tableau : `forEach` sur un
 > `Traversal<S, A[]>` te redonne le tableau, pas l'élément. Un `forEach`
 > imbriqué compile et ne fait silencieusement rien — le travail élément par
-> élément se fait dans le `map` à l'intérieur du `modifyAll`. Détaillé dans
-> `features/todo-optic/todo.ts`.
+> élément se fait dans le `map` à l'intérieur du `modifyAll`. Démontré et
+> asserté dans `packages/exemple/src/optic/nestedTraversal.ts`.
 
 ## Scripts
 

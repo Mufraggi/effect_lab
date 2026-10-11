@@ -12,7 +12,6 @@ import type { Meta, Post, PostPatch, Visibility } from "./schemas.js"
 export const _title = Optic.id<Post>().key("title")
 export const _body = Optic.id<Post>().key("body")
 export const _authorName = Optic.id<Post>().key("author").key("name")
-export const _authorEmail = Optic.id<Post>().key("author").key("email")
 
 /** `tags` is a `ReadonlyArray<string>`, so this lens is already a Traversal. */
 export const _tags = Optic.id<Post>().key("tags")

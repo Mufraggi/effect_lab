@@ -1,8 +1,10 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router"
 
 /**
- * One route per slice. Each page is lazy so a slice's code only loads when
- * you navigate to it — the slice boundary is also the bundle boundary.
+ * One route per slice: add a folder under `features/`, add an entry here.
+ *
+ * Each page is lazy, so the slice boundary is also the bundle boundary — a
+ * slice only costs what it is worth to whoever navigates to it.
  */
 const routes: ReadonlyArray<RouteRecordRaw> = [
   { path: "/", redirect: "/posts" },
@@ -12,12 +14,8 @@ const routes: ReadonlyArray<RouteRecordRaw> = [
     component: () => import("../features/posts/PostsPage.vue"),
     meta: { title: "Posts" }
   },
-  {
-    path: "/todo-optic",
-    name: "todo-optic",
-    component: () => import("../features/todo-optic/TodoOpticPage.vue"),
-    meta: { title: "Todo — optics purs" }
-  }
+  // An unknown URL lands on the first slice rather than a blank page.
+  { path: "/:pathMatch(.*)*", redirect: "/posts" }
 ]
 
 export const router = createRouter({
