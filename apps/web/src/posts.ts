@@ -57,6 +57,6 @@ export const patchPost = Atom.optimisticFn(optimisticPosts, {
   fn: PostsHttp.mutation("posts", "updatePost")
 })
 
-export const retag = PostsHttp.mutation("posts", "retag")
+export const retagPosts = PostsHttp.mutation("posts", "retag")
 
 export { optimisticPosts }

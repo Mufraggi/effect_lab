@@ -1,64 +1,25 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
-import { Cause, Exit } from "effect"
-import { AsyncResult } from "effect/reactivity"
-import { useAtomSet, useAtomValue } from "@effect/atom-vue"
-import type { Post, PostPatch } from "@effect_lab/shared"
-import { POSTS_KEY, optimisticPosts, patchPost, retag, updateTitle } from "./posts.js"
+import type { PostPatch } from "@effect_lab/shared"
+import { usePosts } from "./usePosts.js"
 import PostForm from "./PostForm.vue"
 
-const result = useAtomValue(() => optimisticPosts)
+const { posts, loading, readError, writeError, editTitle, savePatch, retag } = usePosts()
 
-// `isInitial` alone only covers the very first load; a refetch triggered by an
-// invalidation is a *waiting* success, which it reports as false.
-const loading = computed(() =>
-  AsyncResult.isInitial(result.value) || AsyncResult.isWaiting(result.value)
-)
-
-const posts = computed<ReadonlyArray<Post>>(() =>
-  AsyncResult.isSuccess(result.value) ? result.value.value : []
-)
-
-const queryError = computed(() =>
-  AsyncResult.isFailure(result.value) ? Cause.pretty(result.value.cause) : null
-)
-
-// `promiseExit` is what makes a failed mutation observable. Without it the
-// setter returns void and a rejected PATCH passes silently.
-const runUpdateTitle = useAtomSet(() => updateTitle, { mode: "promiseExit" })
-const runPatch = useAtomSet(() => patchPost, { mode: "promiseExit" })
-const runRetag = useAtomSet(() => retag, { mode: "promiseExit" })
-
-const mutationError = ref<string | null>(null)
-
-const report = async (run: Promise<Exit.Exit<unknown, unknown>>) => {
-  mutationError.value = null
-  const exit = await run
-  if (Exit.isFailure(exit)) {
-    const pretty = Cause.pretty(exit.cause)
-    // Headline on screen, full cause in the console — the stack is noise in a UI.
-    mutationError.value = pretty.split("\n")[0] ?? "mutation failed"
-    console.error(pretty)
-  }
-}
-
-const editTitle = (id: number, title: string) =>
-  report(runUpdateTitle({ params: { id }, payload: { title } }))
-
+// All this component owns is view state: which post is open, and what is
+// typed in the retag inputs.
 const editing = ref<number | null>(null)
 const editingPost = computed(() => posts.value.find((p) => p.id === editing.value) ?? null)
 
-const savePatch = async (patch: PostPatch) => {
+const save = async (patch: PostPatch) => {
   const id = editing.value
   if (id === null) return
-  await report(runPatch({ params: { id }, payload: patch }))
+  await savePatch(id, patch)
   editing.value = null
 }
 
 const tagFrom = ref("effect")
 const tagTo = ref("effect-4")
-const applyRetag = () =>
-  report(runRetag({ payload: { from: tagFrom.value, to: tagTo.value }, reactivityKeys: POSTS_KEY }))
 </script>
 
 <template>
@@ -66,8 +27,8 @@ const applyRetag = () =>
     <h1>Optics + atom-vue + AtomHttpApi</h1>
 
     <p v-if="loading" class="status">Chargement…</p>
-    <p v-if="queryError" class="error" role="alert">Erreur de lecture : {{ queryError }}</p>
-    <p v-if="mutationError" class="error" role="alert">Écriture refusée : {{ mutationError }}</p>
+    <p v-if="readError" class="error" role="alert">Erreur de lecture : {{ readError }}</p>
+    <p v-if="writeError" class="error" role="alert">Écriture refusée : {{ writeError }}</p>
 
     <section class="bulk">
       <h2>Renommer un tag partout</h2>
@@ -75,7 +36,7 @@ const applyRetag = () =>
       <input v-model="tagFrom" aria-label="tag source" />
       <span>→</span>
       <input v-model="tagTo" aria-label="tag cible" />
-      <button @click="applyRetag()">Renommer</button>
+      <button @click="retag(tagFrom, tagTo)">Renommer</button>
     </section>
 
     <ul class="posts">
@@ -98,7 +59,7 @@ const applyRetag = () =>
     <PostForm
       v-if="editingPost"
       :post="editingPost"
-      @save="savePatch"
+      @save="save"
       @cancel="editing = null"
     />
   </main>
