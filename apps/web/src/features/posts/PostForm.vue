@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue"
-import { Optic } from "effect"
 import {
   _authorName,
   _body,
@@ -12,34 +11,49 @@ import {
   type PostPatch
 } from "@effect_lab/shared"
 import { opticField } from "../../shared/opticField.js"
+import { _tagsAsText, draftPatch, rebaseDraft } from "./postDraft.js"
 
 const props = defineProps<{ post: Post }>()
 const emit = defineEmits<{ save: [PostPatch]; cancel: [] }>()
 
-// The draft is seeded ONCE, on purpose. It is not a mirror of server state —
-// nothing syncs into it behind your back, so nothing can overwrite your typing.
+/** What the user is editing. */
 const draft = ref<Post>(props.post)
-watch(() => props.post.id, () => {
-  draft.value = props.post
-})
 
-const pristine = () => props.post
+/**
+ * The post as it was when the draft was last seeded or rebased.
+ *
+ * `dirty` is measured against THIS, never against the live prop. The prop comes
+ * from the optimistic cache, so it changes identity on every write anywhere in
+ * the app — comparing against it would report a field as edited because
+ * *something else* moved, and `reset` would reset to a value you never saw.
+ */
+const base = ref<Post>(props.post)
+const pristine = () => base.value
 
 // One helper, five fields, three different depths.
 const title = opticField(draft, pristine, _title)
 const body = opticField(draft, pristine, _body)
 const author = opticField(draft, pristine, _authorName)
 const visibility = opticField(draft, pristine, _visibility)
-
-// Tags are edited as text, so the optic is composed with an Iso that converts
-// between the array and its comma-separated form.
-const _tagsAsText = _tags.compose(
-  Optic.makeIso<ReadonlyArray<string>, string>(
-    (tags) => tags.join(", "),
-    (text) => text.split(",").map((t) => t.trim()).filter((t) => t.length > 0)
-  )
-)
 const tags = opticField(draft, pristine, _tagsAsText)
+
+/**
+ * The prop is server state, the draft is the user's. When the server moves, the
+ * draft is rebased onto it field by field — the rule itself lives in
+ * `postDraft.ts` and is asserted in `postDraft.assert.ts`.
+ *
+ * A different id is a different edit, so it starts clean: no field ever carries
+ * over from one post to another.
+ */
+watch(() => props.post, (next, previous) => {
+  if (previous?.id !== next.id) {
+    draft.value = next
+    base.value = next
+    return
+  }
+  draft.value = rebaseDraft(next, draft.value, base.value)
+  base.value = next
+})
 
 /**
  * `publishedAt` is derived from `visibility` by `applyPatch`, which drops the
@@ -54,19 +68,15 @@ const normaliseTags = () => {
   draft.value = _tags.modifyAll((tag) => tag.toLowerCase())(draft.value)
 }
 
-const anyDirty = computed(() =>
-  title.dirty.value || body.dirty.value || author.dirty.value ||
-  visibility.dirty.value || tags.dirty.value
-)
+/**
+ * What would be sent. The button and the payload read the *same* value, so the
+ * form cannot offer to save something it then declines to put in the patch.
+ */
+const patch = computed(() => draftPatch(draft.value, base.value))
+const anyDirty = computed(() => Object.keys(patch.value).length > 0)
 
 const save = () => {
-  emit("save", {
-    title: title.model.value,
-    body: body.model.value,
-    author: { name: author.model.value },
-    tags: Optic.get(draft.value, _tags),
-    visibility: visibility.model.value
-  })
+  emit("save", patch.value)
 }
 </script>
 

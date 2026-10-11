@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Optic, Ref } from "effect"
+import { Context, Effect, Layer, Ref } from "effect"
 import {
   _everyTags,
   _postById,
@@ -51,21 +51,29 @@ export class PostsRepo extends Context.Service<PostsRepo, {
     Effect.gen(function*() {
       const ref = yield* Ref.make(seed)
 
+      // Looking one element up is not an optic's job: `find` is shorter, it
+      // narrows `Post | undefined` for free, and it stops at the first match.
+      // Reading through `_postById` would allocate an array, check its length
+      // and still need a `!` to get the element back out.
+      const lookup = (posts: ReadonlyArray<Post>, id: number) =>
+        posts.find((post) => post.id === id)
+
       const byId = (id: number) =>
         Effect.flatMap(Ref.get(ref), (posts) => {
-          // `_postById` focuses zero or one element, so reading it is also the
-          // existence check — no `find` and no separate predicate.
-          const found = Optic.getAll(_postById(id))(posts)
-          return found.length === 0 ? Effect.fail(new NotFound()) : Effect.succeed(found[0]!)
+          const found = lookup(posts, id)
+          return found === undefined ? Effect.fail(new NotFound()) : Effect.succeed(found)
         })
 
+      // The optic earns its place on the *write*: `refine` puts the id in the
+      // path, so there is no index to carry and no `map` with a ternary. The
+      // read back is a plain `find` — one traversal to edit, one to answer.
       const patch = (id: number, patch: PostPatch) =>
         Effect.flatMap(
           Ref.modify(ref, (posts) => {
             const next = _postById(id).modifyAll((post) => applyPatch(post, patch))(posts)
-            return [Optic.getAll(_postById(id))(next), next] as const
+            return [lookup(next, id), next] as const
           }),
-          (found) => found.length === 0 ? Effect.fail(new NotFound()) : Effect.succeed(found[0]!)
+          (found) => found === undefined ? Effect.fail(new NotFound()) : Effect.succeed(found)
         )
 
       // One traversal renames a tag across every post, at any list length.

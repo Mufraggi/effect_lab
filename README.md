@@ -47,6 +47,7 @@ Les optics feuilles vivent dans `packages/shared/src/optics.ts` et **nulle part 
 | `optionalKey` : écrire `undefined` **supprime** la clé | `optics.ts` (`reconcilePublication`) |
 | L'optic comme **reducer optimiste** — il décrit où l'édition atterrit dans le cache | `apps/web/src/features/posts/posts.ts` |
 | L'optic passé en **paramètre** : un helper, tous les champs, toutes les profondeurs | `apps/web/src/shared/opticField.ts` |
+| Une table `[optic]` qui **rebase** un brouillon sur l'état serveur, champ par champ | `apps/web/src/shared/rebase.ts` + `features/posts/postDraft.ts` |
 | Traversal sur **deux niveaux de tableau** imbriqués, et le filtre dans le chemin | `packages/exemple/src/optic/nestedTraversal.ts` |
 
 > Une traversal **n'aplatit pas** deux niveaux de tableau : `forEach` sur un
@@ -64,6 +65,6 @@ Les optics feuilles vivent dans `packages/shared/src/optics.ts` et **nulle part 
 | `pnpm typecheck` | vérifie les types (dont les `.vue`)          |
 | `pnpm test`      | assertions optics + tests HTTP in-memory     |
 
-Les tests ne dépendent d'aucun runner : `packages/shared` assère le comportement des optics avec du Node nu, `apps/api` monte l'API en mémoire via `HttpApiTest` (pas de socket ouverte).
+Les tests ne dépendent d'aucun runner : `packages/shared` assère le comportement des optics avec du Node nu, `apps/api` monte l'API en mémoire via `HttpApiTest` (pas de socket ouverte), `apps/web` assère la logique de rebase du brouillon — extraite des composants exprès pour être testable sans DOM.
 
 > Pas de linter ni de formatter configuré pour l'instant. La tâche `lint` a été retirée de `turbo.json` : elle existait sans qu'aucun package ne définisse de script, donc `pnpm lint` sortait en succès sans rien vérifier.
