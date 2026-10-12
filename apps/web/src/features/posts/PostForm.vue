@@ -104,7 +104,8 @@ const save = () => {
 
     <label>
       <span>Tags <em v-if="tags.dirty.value">modifié</em></span>
-      <input v-model="tags.model.value" placeholder="effect, optics" />
+      <!-- .lazy: the Iso normalises the text, so only run it on change, not per keystroke. -->
+      <input v-model.lazy="tags.model.value" placeholder="effect, optics" />
       <button type="button" @click="normaliseTags()">tout en minuscules</button>
     </label>
 
