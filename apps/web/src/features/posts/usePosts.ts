@@ -31,11 +31,10 @@ export interface UsePosts {
 export const usePosts = (): UsePosts => {
   const result = useAtomValue(() => optimisticPosts)
 
-  // `isInitial` alone only covers the very first load; a refetch triggered by
-  // an invalidation is a *waiting* success, which it reports as false.
-  const loading = computed(() =>
-    AsyncResult.isInitial(result.value) || AsyncResult.isWaiting(result.value)
-  )
+  // Only "nothing to show yet". `waiting` is deliberately ignored: on an
+  // optimistic atom it means "a mutation is in flight", and the value it carries
+  // is already the one to display — that is the whole point of optimistic UI.
+  const loading = computed(() => AsyncResult.isInitial(result.value))
 
   const posts = computed<ReadonlyArray<Post>>(() =>
     AsyncResult.isSuccess(result.value) ? result.value.value : []
