@@ -5,7 +5,7 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "tsc && node dist/optic/nestedTraversal.js"
+    "test": "tsc && node dist/optic/nestedTraversal.js && node dist/optic/validated.js"
   },
   "exports": {
     ".": {

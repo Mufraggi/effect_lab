@@ -98,3 +98,62 @@ export const _titleById = (id: number) =>
 
 /** Every tag array in the collection — one expression, any number of posts. */
 export const _everyTags = _posts.forEach(() => _tags)
+
+// ---------------------------------------------------------------------------
+// Two array levels, flattened.
+//
+// `forEach` cannot do this. Its callback must return an optic with a *single*
+// focus, so the deepest it reaches is the inner array: `_everyTags` above is a
+// `Traversal<_, ReadonlyArray<string>>`, not a traversal over the strings.
+// Chaining a second `forEach` to "go one level deeper" type-checks and hands
+// you the same arrays back (asserted in `packages/exemple`).
+//
+// The way through is that a *lens onto an array is already a traversal over
+// its elements* — that is why `_tags`, a `Lens<Post, ReadonlyArray<string>>`,
+// accepts `modifyAll((tag) => ...)` element by element. So the flattened
+// traversal is reachable by building that lens by hand.
+// ---------------------------------------------------------------------------
+
+/**
+ * Turn a two-level nesting into one traversal over the leaves.
+ *
+ * `outer` reaches the array of containers, `inner` reaches each container's
+ * array of leaves. The result reads every leaf in order and writes them back
+ * into the same slots, which is what makes it usable as a
+ * `Traversal<S, A>` — so `modifyAll` runs leaf by leaf, with no `map` left in
+ * the caller.
+ *
+ * It is a lens only for **length-preserving** writes. `modifyAll` maps one
+ * leaf to one leaf, so it qualifies; handing `replace` a differently-sized
+ * array would redistribute it against the old slot sizes and lose the excess.
+ */
+export const flatten = <S, T, A>(
+  outer: Optic.Lens<S, ReadonlyArray<T>>,
+  inner: Optic.Lens<T, ReadonlyArray<A>>
+): Optic.Lens<S, ReadonlyArray<A>> =>
+  // `Lens` is invariant in its focus, so the read side has to be typed as
+  // `ReadonlyArray<A>` rather than inferred as `A[]` from `flatMap`.
+  Optic.makeLens<S, ReadonlyArray<A>>(
+    (s) => outer.get(s).flatMap((t) => inner.get(t)),
+    (leaves, s) => {
+      let from = 0
+      return outer.replace(
+        outer.get(s).map((t) => {
+          const slot = inner.get(t).length
+          const next = leaves.slice(from, from + slot)
+          from += slot
+          return inner.replace(next, t)
+        }),
+        s
+      )
+    }
+  )
+
+/**
+ * Every tag of every post, as one traversal over the **strings**.
+ *
+ * This is what `_everyTags` cannot be. Renaming a tag across the whole
+ * collection is now `modifyAll((tag) => ...)`: no index, no `map`, no spread,
+ * and the empty tag list of a draft is simply never visited.
+ */
+export const _everyTag = flatten(_posts, _tags)

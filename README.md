@@ -43,17 +43,37 @@ Les optics feuilles vivent dans `packages/shared/src/optics.ts` et **nulle part 
 | --- | --- |
 | Une table `[optic, lecteur]` qui applique un patch partiel — ajouter un champ = une ligne | `packages/shared/src/optics.ts` (`patchFields`) |
 | `refine` pour adresser un post **par id**, sans index | `optics.ts` (`_postById`, `_titleById`) |
-| Une traversal qui réécrit un tag sur toute la collection | `apps/api/src/repo.ts` (`retag`) |
+| Une traversal qui réécrit un tag sur toute la collection, **tag par tag** | `apps/api/src/repo.ts` (`retag`) |
+| `flatten` : franchir **deux niveaux de tableau**, que `forEach` ne traverse pas | `optics.ts` (`flatten`, `_everyTag`) |
 | `optionalKey` : écrire `undefined` **supprime** la clé | `optics.ts` (`reconcilePublication`) |
 | L'optic comme **reducer optimiste** — il décrit où l'édition atterrit dans le cache | `apps/web/src/features/posts/posts.ts` |
 | L'optic passé en **paramètre** : un helper, tous les champs, toutes les profondeurs | `apps/web/src/shared/opticField.ts` |
+| Une table `[optic]` qui **rebase** un brouillon sur l'état serveur, champ par champ | `apps/web/src/shared/rebase.ts` + `features/posts/postDraft.ts` |
 | Traversal sur **deux niveaux de tableau** imbriqués, et le filtre dans le chemin | `packages/exemple/src/optic/nestedTraversal.ts` |
+| Un optic qui **échoue à focaliser** : `check`, `getResult`, et l'`Issue` partagée avec `Schema` | `packages/exemple/src/optic/validated.ts` |
 
-> Une traversal **n'aplatit pas** deux niveaux de tableau : `forEach` sur un
-> `Traversal<S, A[]>` te redonne le tableau, pas l'élément. Un `forEach`
-> imbriqué compile et ne fait silencieusement rien — le travail élément par
-> élément se fait dans le `map` à l'intérieur du `modifyAll`. Démontré et
-> asserté dans `packages/exemple/src/optic/nestedTraversal.ts`.
+> **`forEach` n'aplatit pas deux niveaux de tableau.** Sur un
+> `Traversal<S, A[]>` il te redonne le tableau, pas l'élément : un `forEach`
+> imbriqué compile et ne fait silencieusement rien. La cause est dans la
+> signature — `forEach` prend `(iso) => Optional<A, B>`, et un `Optional` n'a
+> qu'un seul focus. Aucun chaînage n'en sortira.
+>
+> **Un optic peut échouer à focaliser, et l'échec est une valeur `Schema`.**
+> C'est ce qui distingue `Optic` de Monocle : `getResult` renvoie un
+> `Result<A, SchemaIssue.Issue>`, et cette `Issue` est exactement celle qu'un
+> décodage `Schema` raté produit — même type, même formatter. Attention au
+> piège : la moitié agréable de l'API (`get`, `replace`) avale l'échec.
+> `replace` à travers un optic qui ne focalise pas te **rend l'original, sans
+> un mot**. Démontré dans `packages/exemple/src/optic/validated.ts`.
+
+> Mais ce n'est pas un mur : **un lens vers un tableau *est* une traversal sur
+> ses éléments** (c'est pourquoi `_tags`, un `Lens<Post, ReadonlyArray<string>>`,
+> accepte `modifyAll((tag) => …)`). Il suffit donc de construire ce lens à la
+> main — lire les feuilles dans l'ordre, les réécrire dans les mêmes
+> emplacements. C'est `flatten` dans `optics.ts`, générique sur deux optics,
+> valable pour les écritures qui préservent la longueur (ce que `modifyAll`
+> fait). Les deux faces sont assertées : `optics.assert.ts` et
+> `packages/exemple/src/optic/nestedTraversal.ts`.
 
 ## Scripts
 
@@ -64,6 +84,6 @@ Les optics feuilles vivent dans `packages/shared/src/optics.ts` et **nulle part 
 | `pnpm typecheck` | vérifie les types (dont les `.vue`)          |
 | `pnpm test`      | assertions optics + tests HTTP in-memory     |
 
-Les tests ne dépendent d'aucun runner : `packages/shared` assère le comportement des optics avec du Node nu, `apps/api` monte l'API en mémoire via `HttpApiTest` (pas de socket ouverte).
+Les tests ne dépendent d'aucun runner : `packages/shared` assère le comportement des optics avec du Node nu, `apps/api` monte l'API en mémoire via `HttpApiTest` (pas de socket ouverte), `apps/web` assère la logique de rebase du brouillon — extraite des composants exprès pour être testable sans DOM.
 
 > Pas de linter ni de formatter configuré pour l'instant. La tâche `lint` a été retirée de `turbo.json` : elle existait sans qu'aucun package ne définisse de script, donc `pnpm lint` sortait en succès sans rien vérifier.
