@@ -76,10 +76,19 @@ importers:
 
   packages/exemple:
     dependencies:
+      '@effect/platform-node':
+        specifier: 4.0.2
+        version: 4.0.2(effect@4.0.2)(redis@6.3.0)
       effect:
         specifier: ^4.0.2
         version: 4.0.2
     devDependencies:
+      '@types/node':
+        specifier: ^22.20.5
+        version: 22.20.5
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
