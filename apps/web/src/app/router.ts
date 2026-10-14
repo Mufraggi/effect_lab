@@ -14,6 +14,12 @@ const routes: ReadonlyArray<RouteRecordRaw> = [
     component: () => import("../features/posts/PostsPage.vue"),
     meta: { title: "Posts" }
   },
+  {
+    path: "/todos",
+    name: "todos",
+    component: () => import("../features/todos/TodosPage.vue"),
+    meta: { title: "Todos" }
+  },
   // An unknown URL lands on the first slice rather than a blank page.
   { path: "/:pathMatch(.*)*", redirect: "/posts" }
 ]

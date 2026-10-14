@@ -8,6 +8,11 @@ export default defineConfig({
       "/api": {
         target: "http://localhost:3001",
         rewrite: (path) => path.replace(/^\/api/, "")
+      },
+      // The EventLog sync server (packages/exemple), over WebSocket.
+      "/eventlog": {
+        target: "ws://localhost:3100",
+        ws: true
       }
     }
   }

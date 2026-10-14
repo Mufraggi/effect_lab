@@ -13,13 +13,13 @@
  * then run `pnpm --filter @effect_lab/exemple eventlog:scenario`.
  */
 import { NodeRuntime, NodeSocket } from "@effect/platform-node"
-import { Console, Context, Effect, Exit, Layer, Ref, Schedule, Scope, SubscriptionRef } from "effect"
+import { Console, Context, Effect, Exit, Layer, Schedule, Scope, SubscriptionRef } from "effect"
 import { EventJournal, EventLog, EventLogRemote } from "effect/eventlog"
 import { StoreId } from "effect/eventlog/EventLogMessage"
 import { RpcClient, RpcSerialization } from "effect/rpc"
 import assert from "node:assert/strict"
-import { Alice, Bob, PORT } from "./identities.js"
-import { ConflictLog, ConflictLogLive, type TodoStateShape, TodoHandlersClient, TodoSchema, TodoState, TodoStateLive } from "./todo.js"
+import { Alice, Bob, ConflictLog, ConflictLogLive, type TodoStateShape, TodoHandlersClient, TodoSchema, TodoState, TodoStateLive } from "@effect_lab/shared"
+import { PORT } from "./port.js"
 
 const RemoteLive = EventLogRemote.layerUnencrypted.pipe(
   Layer.provide(RpcClient.layerProtocolSocket({ retryTransientErrors: true })),
@@ -65,7 +65,7 @@ const makeClient = Effect.fnUntraced(function*(name: string, identity: EventLog.
     return scope === undefined ? Effect.void : Scope.close(scope, Exit.void)
   }).pipe(Effect.andThen(Console.log(`  ${name} : hors ligne`)))
 
-  return { name, write, goOnline, goOffline, state: SubscriptionRef.get(state), conflicts: Ref.get(conflicts) }
+  return { name, write, goOnline, goOffline, state: SubscriptionRef.get(state), conflicts: SubscriptionRef.get(conflicts) }
 })
 
 type Client = Effect.Success<ReturnType<typeof makeClient>>

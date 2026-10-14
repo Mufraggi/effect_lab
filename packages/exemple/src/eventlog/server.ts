@@ -13,8 +13,8 @@ import { NodeRuntime, NodeSocketServer } from "@effect/platform-node"
 import { Effect, Layer } from "effect"
 import { EventLogServerUnencrypted as Server } from "effect/eventlog"
 import { RpcSerialization, RpcServer } from "effect/rpc"
-import { Alice, Bob, PORT } from "./identities.js"
-import { TodoHandlersServer, TodoSchema } from "./todo.js"
+import { Alice, Bob, TodoHandlersServer, TodoSchema } from "@effect_lab/shared"
+import { PORT } from "./port.js"
 
 const allowed = new Set([Alice.publicKey, Bob.publicKey])
 

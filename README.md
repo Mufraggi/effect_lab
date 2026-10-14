@@ -34,6 +34,19 @@ pnpm dev
 
 - Front : http://localhost:5173
 - API : http://localhost:3001
+- Serveur EventLog (WebSocket) : ws://localhost:3100, proxifié par Vite sous `/eventlog`
+
+## EventLog : la todo-list hors ligne
+
+La page `/todos` fait tourner deux clients EventLog complets, Alice et Bob : chacun a son identité, son journal IndexedDB et son WebSocket. Le bouton « Passer hors ligne » ferme le scope qui tient la connexion, et la reconnexion envoie ce qui a été écrit entre-temps.
+
+| Ce que ça montre | Où |
+| --- | --- |
+| Les events, la projection, la résolution des conflits (`conflicts` et marqueurs de suppression) | `packages/shared/src/todos.ts` |
+| Le serveur de synchro, en mémoire | `packages/exemple/src/eventlog/server.ts` |
+| Les trois scénarios scriptés, avec assertions (`pnpm --filter @effect_lab/exemple eventlog:scenario`) | `packages/exemple/src/eventlog/scenario.ts` |
+| En ligne = un atom qui tient le remote ; une factory d'atoms par utilisateur | `apps/web/src/features/todos/todoClient.ts` |
+| La recherche, sourcée dans le code d'effect 4.0.2 | `docs/research/effect-v4-eventlog.md` |
 
 ## Les optics, et où les regarder
 
