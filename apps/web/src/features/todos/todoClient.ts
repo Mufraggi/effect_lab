@@ -1,10 +1,9 @@
 import { Effect, Layer, Match } from "effect"
 import { EventJournal, EventLog, EventLogRemote } from "effect/eventlog"
-import { StoreId } from "effect/eventlog/EventLogMessage"
 import { Atom } from "effect/reactivity"
 import { RpcClient, RpcSerialization } from "effect/rpc"
 import { Socket } from "effect/socket"
-import { type TodoEvent, TodoSchema } from "@effect_lab/shared"
+import { type TodoEvent, TodoSchema, TodoStoreId } from "@effect_lab/shared"
 import { TodoHandlersClient } from "./handlers.js"
 import { ConflictLog, TodoState } from "./state.js"
 
@@ -21,9 +20,6 @@ const RemoteLive = EventLogRemote.layerUnencrypted.pipe(
   Layer.provide(Socket.layerWebSocketConstructorGlobal)
 )
 
-/** Both users write to the same store: that is what makes the list shared. */
-const storeId = StoreId.make("demo")
-
 /** Who the client is, and where it keeps its journal. */
 export interface TodoUser {
   /** The IndexedDB database holding this user's journal. */
@@ -38,7 +34,7 @@ const ClientLive = ({ database, identity }: TodoUser) =>
       // Its own IndexedDB database: the events survive a page reload.
       EventJournal.layerIndexedDb({ database }),
       Layer.succeed(EventLog.Identity, identity),
-      Layer.succeed(EventLog.CurrentStoreId, storeId)
+      Layer.succeed(EventLog.CurrentStoreId, TodoStoreId)
     ])
   )
 
