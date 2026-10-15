@@ -5,10 +5,7 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "tsc && node dist/optic/nestedTraversal.js && node dist/optic/validated.js",
-    "eventlog:server": "tsx src/eventlog/server.ts",
-    "eventlog:scenario": "tsx src/eventlog/scenario.ts",
-    "dev": "tsx src/eventlog/server.ts"
+    "test": "tsc && node dist/optic/nestedTraversal.js && node dist/optic/validated.js"
   },
   "exports": {
     ".": {

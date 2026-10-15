@@ -34,7 +34,7 @@ pnpm dev
 
 - Front : http://localhost:5173
 - API : http://localhost:3001
-- Serveur EventLog (WebSocket) : ws://localhost:3100, proxifié par Vite sous `/eventlog`
+- Serveur EventLog (WebSocket) : ws://localhost:3001/eventlog, sur le même serveur que l'API, proxifié par Vite sous `/eventlog`
 
 ## EventLog : la todo-list hors ligne
 
@@ -42,9 +42,8 @@ La page `/todos` fait tourner deux clients EventLog complets, Alice et Bob : cha
 
 | Ce que ça montre | Où |
 | --- | --- |
-| Les events, la projection, la résolution des conflits (`conflicts` et marqueurs de suppression) | `packages/shared/src/todos.ts` |
-| Le serveur de synchro, en mémoire | `packages/exemple/src/eventlog/server.ts` |
-| Les trois scénarios scriptés, avec assertions (`pnpm --filter @effect_lab/exemple eventlog:scenario`) | `packages/exemple/src/eventlog/scenario.ts` |
+| Les events, la projection, la résolution des conflits (`conflicts` et marqueurs de suppression) | `packages/shared/src/todos/` (contrat) et `apps/web/src/features/todos/` (projection, handlers) |
+| Le serveur de synchro, en mémoire, monté sur le routeur HTTP de l'API | `apps/api/src/features/todos/eventlog.ts` |
 | En ligne = un atom qui tient le remote ; une factory d'atoms par utilisateur | `apps/web/src/features/todos/todoClient.ts` |
 | La recherche, sourcée dans le code d'effect 4.0.2 | `docs/research/effect-v4-eventlog.md` |
 
@@ -56,7 +55,7 @@ Les optics feuilles vivent dans `packages/shared/src/optics.ts` et **nulle part 
 | --- | --- |
 | Une table `[optic, lecteur]` qui applique un patch partiel — ajouter un champ = une ligne | `packages/shared/src/optics.ts` (`patchFields`) |
 | `refine` pour adresser un post **par id**, sans index | `optics.ts` (`_postById`, `_titleById`) |
-| Une traversal qui réécrit un tag sur toute la collection, **tag par tag** | `apps/api/src/repo.ts` (`retag`) |
+| Une traversal qui réécrit un tag sur toute la collection, **tag par tag** | `apps/api/src/features/posts/repo.ts` (`retag`) |
 | `flatten` : franchir **deux niveaux de tableau**, que `forEach` ne traverse pas | `optics.ts` (`flatten`, `_everyTag`) |
 | `optionalKey` : écrire `undefined` **supprime** la clé | `optics.ts` (`reconcilePublication`) |
 | L'optic comme **reducer optimiste** — il décrit où l'édition atterrit dans le cache | `apps/web/src/features/posts/posts.ts` |

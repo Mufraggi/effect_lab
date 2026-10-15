@@ -5,7 +5,7 @@ import { PostsRepo } from "./repo.js"
 
 /**
  * Handlers are thin: every write goes through the repo, so there is no state
- * and no domain logic here. Kept separate from `server.ts` so tests can mount
+ * and no domain logic here. Kept separate from the server so tests can mount
  * them in memory without opening a socket.
  *
  * The repo is yielded once, in the group builder — not inside each handler.
@@ -31,9 +31,4 @@ export const PostsHandlersNoDeps = HttpApiBuilder.group(
 /** The handlers with their store provided. Swap the layer in tests. */
 export const PostsHandlers = PostsHandlersNoDeps.pipe(
   Layer.provide(PostsRepo.layer)
-)
-
-/** The API, ready to serve. */
-export const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide(PostsHandlers)
 )

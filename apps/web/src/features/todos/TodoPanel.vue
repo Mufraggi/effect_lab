@@ -2,7 +2,7 @@
 import { computed, ref } from "vue"
 import { AsyncResult } from "effect/reactivity"
 import { useAtom, useAtomValue } from "@effect/atom-vue"
-import type { Todo } from "@effect_lab/shared"
+import type { Todo } from "./projection.js"
 import type { TodoClient } from "./todoClient.js"
 import { useMutation } from "../../shared/useMutation.js"
 

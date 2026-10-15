@@ -4,17 +4,11 @@ import { StoreId } from "effect/eventlog/EventLogMessage"
 import { Atom } from "effect/reactivity"
 import { RpcClient, RpcSerialization } from "effect/rpc"
 import { Socket } from "effect/socket"
-import {
-  ConflictLog,
-  ConflictLogLive,
-  type TodoEvent,
-  TodoHandlersClient,
-  TodoSchema,
-  TodoState,
-  TodoStateLive
-} from "@effect_lab/shared"
+import { type TodoEvent, TodoSchema } from "@effect_lab/shared"
+import { TodoHandlersClient } from "./handlers.js"
+import { ConflictLog, ConflictLogLive, TodoState, TodoStateLive } from "./state.js"
 
-/** Proxied by Vite to the sync server (`packages/exemple`, port 3100). */
+/** Proxied by Vite to the sync server (`apps/api`, port 3001). */
 const url = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/eventlog`
 
 /**
