@@ -4,8 +4,8 @@ import { makeTodoClient } from "./todoClient.js"
 import TodoPanel from "./TodoPanel.vue"
 
 // Two complete clients in one page: identity, IndexedDB journal, socket.
-const alice = makeTodoClient("todos-alice", Alice)
-const bob = makeTodoClient("todos-bob", Bob)
+const alice = makeTodoClient({ database: "todos-alice", identity: Alice })
+const bob = makeTodoClient({ database: "todos-bob", identity: Bob })
 </script>
 
 <template>

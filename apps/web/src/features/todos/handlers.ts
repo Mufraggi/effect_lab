@@ -1,50 +1,41 @@
 /**
  * The client handlers that keep each user's projection up to date.
  *
- * Two kinds of conflict, two mechanisms:
+ * They do not read EventLog's `conflicts`. It only lists *newer entries
+ * already in the journal*, and a batch of remote entries is checked before any
+ * of it is inserted: two renames of the same todo arriving together never see
+ * each other, and the older one would win. So the projection decides instead,
+ * per field, by comparing entry ids (see `applyTodoEvent`).
  *
- *   - same tag, same primary key (rename vs rename): EventLog reports it in
- *     `conflicts` when it replays a remote entry. An entry there is a *newer*
- *     one already in the journal, so ignoring the incoming entry is
- *     last-write-wins on the writer's clock.
- *   - different tags (toggle vs delete): never reported in `conflicts`. The
- *     projection settles it with a tombstone, which only works because
- *     `TodoToggled` carries the target value rather than a flip.
+ * Two kinds of conflict, one mechanism each:
  *
- * `conflicts` is always empty on a local write: it only fills on replay.
+ *   - same field (rename vs rename, toggle vs toggle): last-write-wins on the
+ *     writer's clock, the entry id.
+ *   - toggle or rename vs delete: settled by a tombstone, which only works
+ *     because `TodoToggled` carries the target value rather than a flip.
  */
-import { Effect, SubscriptionRef } from "effect"
-import { EventLog } from "effect/eventlog"
+import { Effect, Result, SubscriptionRef } from "effect"
+import { EventJournal, EventLog } from "effect/eventlog"
 import { type TodoEvent, TodoEvents } from "@effect_lab/shared"
 import { applyTodoEvent } from "./projection.js"
 import { ConflictLog, TodoState } from "./state.js"
 
-const record = (line: string) => ConflictLog.use((log) => SubscriptionRef.update(log, (lines) => [...lines, line]))
-
-const apply = (event: TodoEvent) => TodoState.use((ref) => SubscriptionRef.update(ref, (s) => applyTodoEvent(s, event)))
-
-const isDeleted = (id: string) => TodoState.use((ref) => Effect.map(SubscriptionRef.get(ref), (s) => s.deleted.has(id)))
+const apply = Effect.fnUntraced(function*(event: TodoEvent, entry: EventJournal.Entry) {
+  const state = yield* TodoState
+  const result = yield* SubscriptionRef.modify(state, (s) => {
+    const next = applyTodoEvent(s, event, entry.id)
+    return [next, Result.getOrElse(next, () => s)]
+  })
+  if (Result.isFailure(result)) {
+    const conflicts = yield* ConflictLog
+    yield* SubscriptionRef.update(conflicts, (rejections) => [...rejections, result.failure])
+  }
+})
 
 export const TodoHandlersClient = EventLog.group(TodoEvents, (h) =>
   h
-    .handle("TodoAdded", ({ payload }) => apply({ _tag: "TodoAdded", payload }))
-    .handle("TodoRenamed", ({ payload, conflicts }) =>
-      Effect.gen(function*() {
-        if (conflicts.length > 0) {
-          const newer = conflicts.map((c) => `"${c.payload.title}"`).join(", ")
-          return yield* record(`TodoRenamed(${payload.id}) "${payload.title}" ignoré : plus ancien que ${newer}`)
-        }
-        yield* apply({ _tag: "TodoRenamed", payload })
-      }))
-    .handle("TodoToggled", ({ payload, conflicts }) =>
-      Effect.gen(function*() {
-        if (conflicts.length > 0) {
-          return yield* record(`TodoToggled(${payload.id}) done=${payload.done} ignoré : bascule plus récente`)
-        }
-        if (yield* isDeleted(payload.id)) {
-          return yield* record(`TodoToggled(${payload.id}) done=${payload.done} ignoré : la todo est supprimée`)
-        }
-        yield* apply({ _tag: "TodoToggled", payload })
-      }))
-    .handle("TodoDeleted", ({ payload }) => apply({ _tag: "TodoDeleted", payload }))
+    .handle("TodoAdded", ({ payload, entry }) => apply({ _tag: "TodoAdded", payload }, entry))
+    .handle("TodoRenamed", ({ payload, entry }) => apply({ _tag: "TodoRenamed", payload }, entry))
+    .handle("TodoToggled", ({ payload, entry }) => apply({ _tag: "TodoToggled", payload }, entry))
+    .handle("TodoDeleted", ({ payload, entry }) => apply({ _tag: "TodoDeleted", payload }, entry))
 )

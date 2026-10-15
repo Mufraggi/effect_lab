@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
+import { Match } from "effect"
 import { AsyncResult } from "effect/reactivity"
 import { useAtom, useAtomValue } from "@effect/atom-vue"
-import type { Todo } from "./projection.js"
+import { TodoId } from "@effect_lab/shared"
+import type { Rejection, Todo } from "./projection.js"
 import type { TodoClient } from "./todoClient.js"
 import { useMutation } from "../../shared/useMutation.js"
 
@@ -10,7 +12,7 @@ const props = defineProps<{ name: string; client: TodoClient }>()
 
 const [online, setOnline] = useAtom(() => props.client.online)
 const connection = useAtomValue(() => props.client.connection)
-const state = useAtomValue(() => props.client.todos)
+const projection = useAtomValue(() => props.client.todos)
 const conflicts = useAtomValue(() => props.client.conflicts)
 const { run: write, error } = useMutation(() => props.client.write)
 
@@ -22,11 +24,23 @@ const status = computed(() => {
 })
 
 const todos = computed<ReadonlyArray<Todo>>(() =>
-  AsyncResult.isSuccess(state.value) ? [...state.value.value.todos.values()] : []
+  AsyncResult.isSuccess(projection.value) ? [...projection.value.value.todos.values()] : []
 )
 
-const lines = computed<ReadonlyArray<string>>(() =>
-  AsyncResult.isSuccess(conflicts.value) ? conflicts.value.value : []
+const describe = ({ _tag, event }: Rejection): string => {
+  const what = Match.valueTags(event, {
+    TodoAdded: ({ payload }) => `TodoAdded(${payload.id}) "${payload.title}"`,
+    TodoRenamed: ({ payload }) => `TodoRenamed(${payload.id}) "${payload.title}"`,
+    TodoToggled: ({ payload }) => `TodoToggled(${payload.id}) done=${payload.done}`,
+    TodoDeleted: ({ payload }) => `TodoDeleted(${payload.id})`
+  })
+  return _tag === "Stale"
+    ? `${what} ignoré : une écriture plus récente est déjà appliquée`
+    : `${what} ignoré : la todo est supprimée`
+}
+
+const conflictMessages = computed<ReadonlyArray<string>>(() =>
+  AsyncResult.isSuccess(conflicts.value) ? conflicts.value.value.map(describe) : []
 )
 
 const title = ref("")
@@ -34,8 +48,19 @@ const add = async () => {
   const value = title.value.trim()
   if (value === "") return
   title.value = ""
-  await write({ _tag: "TodoAdded", payload: { id: crypto.randomUUID().slice(0, 8), title: value } })
+  await write({ _tag: "TodoAdded", payload: { id: TodoId.make(crypto.randomUUID().slice(0, 8)), title: value } })
 }
+
+/** The input that fired a `change` event. */
+const inputOf = (e: Event) => e.target as HTMLInputElement
+
+const toggle = (todo: Todo, e: Event) =>
+  write({ _tag: "TodoToggled", payload: { id: todo.id, done: inputOf(e).checked } })
+
+const rename = (todo: Todo, e: Event) =>
+  write({ _tag: "TodoRenamed", payload: { id: todo.id, title: inputOf(e).value } })
+
+const remove = (todo: Todo) => write({ _tag: "TodoDeleted", payload: { id: todo.id } })
 </script>
 
 <template>
@@ -59,27 +84,27 @@ const add = async () => {
           type="checkbox"
           :checked="todo.done"
           aria-label="faite"
-          @change="write({ _tag: 'TodoToggled', payload: { id: todo.id, done: ($event.target as HTMLInputElement).checked } })"
+          @change="toggle(todo, $event)"
         />
         <input
           class="title"
           :class="{ done: todo.done }"
           :value="todo.title"
           aria-label="titre"
-          @change="write({ _tag: 'TodoRenamed', payload: { id: todo.id, title: ($event.target as HTMLInputElement).value } })"
+          @change="rename(todo, $event)"
         />
         <code>{{ todo.id }}</code>
-        <button aria-label="supprimer" @click="write({ _tag: 'TodoDeleted', payload: { id: todo.id } })">×</button>
+        <button aria-label="supprimer" @click="remove(todo)">×</button>
       </li>
       <li v-if="todos.length === 0" class="empty">(vide)</li>
     </ul>
 
     <p v-if="error" class="error" role="alert">{{ error }}</p>
 
-    <details :open="lines.length > 0">
-      <summary>Conflits résolus ici ({{ lines.length }})</summary>
+    <details :open="conflictMessages.length > 0">
+      <summary>Conflits résolus ici ({{ conflictMessages.length }})</summary>
       <ul class="conflicts">
-        <li v-for="(line, i) in lines" :key="i">{{ line }}</li>
+        <li v-for="(message, i) in conflictMessages" :key="i">{{ message }}</li>
       </ul>
     </details>
   </section>

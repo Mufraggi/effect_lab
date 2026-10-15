@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect"
+import { Effect, Layer, Match } from "effect"
 import { EventJournal, EventLog, EventLogRemote } from "effect/eventlog"
 import { StoreId } from "effect/eventlog/EventLogMessage"
 import { Atom } from "effect/reactivity"
@@ -6,7 +6,7 @@ import { RpcClient, RpcSerialization } from "effect/rpc"
 import { Socket } from "effect/socket"
 import { type TodoEvent, TodoSchema } from "@effect_lab/shared"
 import { TodoHandlersClient } from "./handlers.js"
-import { ConflictLog, ConflictLogLive, TodoState, TodoStateLive } from "./state.js"
+import { ConflictLog, TodoState } from "./state.js"
 
 /** Proxied by Vite to the sync server (`apps/api`, port 3001). */
 const url = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/eventlog`
@@ -24,9 +24,16 @@ const RemoteLive = EventLogRemote.layerUnencrypted.pipe(
 /** Both users write to the same store: that is what makes the list shared. */
 const storeId = StoreId.make("demo")
 
-const ClientLive = (database: string, identity: EventLog.Identity["Service"]) =>
+/** Who the client is, and where it keeps its journal. */
+export interface TodoUser {
+  /** The IndexedDB database holding this user's journal. */
+  readonly database: string
+  readonly identity: EventLog.Identity["Service"]
+}
+
+const ClientLive = ({ database, identity }: TodoUser) =>
   EventLog.layer(TodoSchema, TodoHandlersClient).pipe(
-    Layer.provideMerge([TodoStateLive, ConflictLogLive]),
+    Layer.provideMerge([TodoState.layer, ConflictLog.layer]),
     Layer.provide([
       // Its own IndexedDB database: the events survive a page reload.
       EventJournal.layerIndexedDb({ database }),
@@ -45,8 +52,8 @@ export type Connection = "online" | "offline"
  * registry, the log itself) would be built once and shared by Alice and Bob —
  * one client wearing two identities.
  */
-export const makeTodoClient = (database: string, identity: EventLog.Identity["Service"]) => {
-  const runtime = Atom.context({ memoMap: Layer.makeMemoMapUnsafe() })(ClientLive(database, identity))
+export const makeTodoClient = (user: TodoUser) => {
+  const runtime = Atom.context({ memoMap: Layer.makeMemoMapUnsafe() })(ClientLive(user))
 
   /** What the "hors ligne" button flips. */
   const online = Atom.make(true).pipe(Atom.keepAlive)
@@ -67,9 +74,12 @@ export const makeTodoClient = (database: string, identity: EventLog.Identity["Se
 
   const write = runtime.fn((event: TodoEvent) =>
     Effect.flatMap(EventLog.makeClient(TodoSchema), (write) =>
-      // The union of tags and payloads is too wide for the typed client;
-      // each member of `TodoEvent` is a valid pair.
-      write(event._tag, event.payload as never))
+      Match.valueTags(event, {
+        TodoAdded: ({ payload }) => write("TodoAdded", payload),
+        TodoRenamed: ({ payload }) => write("TodoRenamed", payload),
+        TodoToggled: ({ payload }) => write("TodoToggled", payload),
+        TodoDeleted: ({ payload }) => write("TodoDeleted", payload)
+      }))
   )
 
   return { online, connection, todos, conflicts, write }

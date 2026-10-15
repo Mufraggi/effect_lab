@@ -30,15 +30,15 @@ const TodoHandlersServer = EventLog.group(TodoEvents, (h) =>
 
 const allowed = new Set([Alice.publicKey, Bob.publicKey])
 
-const check = ({ publicKey }: { readonly publicKey: string }) =>
+const authorizeKnownKey = ({ publicKey }: { readonly publicKey: string }) =>
   allowed.has(publicKey)
     ? Effect.void
     : Effect.fail(new Server.EventLogServerAuthError({ reason: "Forbidden", publicKey }))
 
 const AuthorizationLive = Layer.succeed(Server.EventLogServerAuthorization, {
-  authorizeIdentity: check,
-  authorizeRead: check,
-  authorizeWrite: check
+  authorizeIdentity: authorizeKnownKey,
+  authorizeRead: authorizeKnownKey,
+  authorizeWrite: authorizeKnownKey
 })
 
 const SharedStoresLive = Layer.succeed(Server.StoreMapping, {

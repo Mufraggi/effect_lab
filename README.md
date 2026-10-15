@@ -42,7 +42,7 @@ La page `/todos` fait tourner deux clients EventLog complets, Alice et Bob : cha
 
 | Ce que ça montre | Où |
 | --- | --- |
-| Les events, la projection, la résolution des conflits (`conflicts` et marqueurs de suppression) | `packages/shared/src/todos/` (contrat) et `apps/web/src/features/todos/` (projection, handlers) |
+| Les events, la projection, la résolution des conflits (dernier écrivain gagne par champ, comparé sur l'id d'entrée, et marqueurs de suppression) | `packages/shared/src/todos/` (contrat) et `apps/web/src/features/todos/` (projection, handlers) |
 | Le serveur de synchro, en mémoire, monté sur le routeur HTTP de l'API | `apps/api/src/features/todos/eventlog.ts` |
 | En ligne = un atom qui tient le remote ; une factory d'atoms par utilisateur | `apps/web/src/features/todos/todoClient.ts` |
 | La recherche, sourcée dans le code d'effect 4.0.2 | `docs/research/effect-v4-eventlog.md` |
