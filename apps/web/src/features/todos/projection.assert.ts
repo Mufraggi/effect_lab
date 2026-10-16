@@ -43,6 +43,17 @@ const checked = at(4, { _tag: "TodoToggled", payload: { id, done: true } })
 const unchecked = at(5, { _tag: "TodoToggled", payload: { id, done: false } })
 const removed = at(6, { _tag: "TodoDeleted", payload: { id } })
 
+const hour = 3_600_000
+/** Alice's device runs an hour ahead: her entry id and her stamp say so. */
+const aliceAhead = at(2 + hour, { _tag: "TodoRenamed", payload: { id, title: "alice", at: 2 + hour } })
+/**
+ * Bob renames after receiving Alice's rename. His wall clock is right, so his
+ * entry id is older than hers; his hybrid clock has seen her stamp, so his
+ * `at` is later.
+ */
+const bobAfter = at(10, { _tag: "TodoRenamed", payload: { id, title: "bob", at: 3 + hour } })
+const bobWithoutStamp = at(10, { _tag: "TodoRenamed", payload: { id, title: "bob" } })
+
 /** Folds events in the order given, collecting what was rejected. */
 const run = (events: ReadonlyArray<Stamped>) => {
   let state: TodoStateShape = emptyTodoState
@@ -93,6 +104,16 @@ const tests: Array<[string, () => void]> = [
     const state = run([removed, added])
     assert.deepEqual(state.todos, [])
     assert.deepEqual(state.rejected, ["Deleted"])
+  }],
+
+  ["a clock ahead no longer beats an edit made after seeing it", () => {
+    assert.equal(run([added, aliceAhead, bobAfter]).todos[0]?.title, "bob")
+    assert.equal(run([added, bobAfter, aliceAhead]).todos[0]?.title, "bob", "whichever arrives first")
+  }],
+
+  ["without a stamp, the entry id decides, and the clock ahead wins", () => {
+    // What happened before `at`, and what still happens for entries written then.
+    assert.equal(run([added, aliceAhead, bobWithoutStamp]).todos[0]?.title, "alice")
   }],
 
   ["every arrival order of the edits converges to the same todo", () => {

@@ -10,17 +10,18 @@
  * Two kinds of conflict, one mechanism each:
  *
  *   - same field (rename vs rename, toggle vs toggle): last-write-wins on the
- *     writer's clock, the entry id.
+ *     writer's hybrid clock, which every event seen here moves forward.
  *   - toggle or rename vs delete: settled by a tombstone, which only works
  *     because `TodoToggled` carries the target value rather than a flip.
  */
 import { Effect, Result, SubscriptionRef } from "effect"
 import { EventJournal, EventLog } from "effect/eventlog"
-import { type TodoEvent, TodoEvents } from "@effect_lab/shared"
+import { stampMillis, type TodoEvent, TodoEvents } from "@effect_lab/shared"
 import { applyTodoEvent } from "./projection.js"
-import { ConflictLog, TodoState } from "./state.js"
+import { ConflictLog, HybridClock, TodoState } from "./state.js"
 
 const apply = Effect.fnUntraced(function*(event: TodoEvent, entry: EventJournal.Entry) {
+  yield* HybridClock.use((clock) => clock.observe(stampMillis(event, entry.id)))
   const state = yield* TodoState
   const result = yield* SubscriptionRef.modify(state, (s) => {
     const next = applyTodoEvent(s, event, entry.id)

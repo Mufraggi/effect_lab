@@ -6,7 +6,7 @@ import { Socket } from "effect/socket"
 import type { StoreId } from "effect/eventlog/EventLogMessage"
 import { type TodoEvent, TodoSchema } from "@effect_lab/shared"
 import { TodoHandlersClient } from "./handlers.js"
-import { ConflictLog, TodoState } from "./state.js"
+import { ConflictLog, HybridClock, TodoState } from "./state.js"
 
 /** Proxied by Vite to the sync server (`apps/api`, port 3001). */
 const url = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/eventlog`
@@ -34,7 +34,7 @@ export interface TodoUser {
 
 const ClientLive = ({ database, identity, storeId }: TodoUser) =>
   EventLog.layer(TodoSchema, TodoHandlersClient).pipe(
-    Layer.provideMerge([TodoState.layer, ConflictLog.layer]),
+    Layer.provideMerge([TodoState.layer, ConflictLog.layer, HybridClock.layer]),
     Layer.provide([
       // Its own IndexedDB database: the events survive a page reload.
       EventJournal.layerIndexedDb({ database }),
@@ -73,15 +73,17 @@ export const makeTodoClient = (user: TodoUser) => {
   const todos = runtime.subscriptionRef(TodoState.use(Effect.succeed))
   const conflicts = runtime.subscriptionRef(ConflictLog.use(Effect.succeed))
 
-  const write = runtime.fn((event: TodoEvent) =>
-    Effect.flatMap(EventLog.makeClient(TodoSchema), (write) =>
-      Match.valueTags(event, {
-        TodoAdded: ({ payload }) => write("TodoAdded", payload),
-        TodoRenamed: ({ payload }) => write("TodoRenamed", payload),
-        TodoToggled: ({ payload }) => write("TodoToggled", payload),
-        TodoDeleted: ({ payload }) => write("TodoDeleted", payload)
-      }))
-  )
+  /** Every edit is stamped here, on the hybrid clock: callers never pass `at`. */
+  const write = runtime.fn(Effect.fnUntraced(function*(event: TodoEvent) {
+    const write = yield* EventLog.makeClient(TodoSchema)
+    const at = yield* HybridClock.use((clock) => clock.tick)
+    return yield* Match.valueTags(event, {
+      TodoAdded: ({ payload }) => write("TodoAdded", { ...payload, at }),
+      TodoRenamed: ({ payload }) => write("TodoRenamed", { ...payload, at }),
+      TodoToggled: ({ payload }) => write("TodoToggled", { ...payload, at }),
+      TodoDeleted: ({ payload }) => write("TodoDeleted", payload)
+    })
+  }))
 
   return { online, connection, todos, conflicts, write }
 }

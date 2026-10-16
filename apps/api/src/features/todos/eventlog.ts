@@ -11,11 +11,11 @@
  * list, and only its members may read or write it. The `TodoLists` service is
  * left to the caller too, since the HTTP API shares it.
  */
-import { Effect, Layer } from "effect"
+import { Clock, Effect, Layer } from "effect"
 import type { StoreId } from "effect/eventlog/EventLogMessage"
-import { EventLog, EventLogServerUnencrypted as Server, SqlEventLogServerUnencrypted } from "effect/eventlog"
+import { EventJournal, EventLog, EventLogServerUnencrypted as Server, SqlEventLogServerUnencrypted } from "effect/eventlog"
 import { RpcSerialization, RpcServer } from "effect/rpc"
-import { TodoEvents, TodoSchema } from "@effect_lab/shared"
+import { decodeTodoEntry, MaxClockSkewMillis, stampMillis, TodoEvents, TodoSchema } from "@effect_lab/shared"
 import { TodoLists } from "../lists/repo.js"
 
 /**
@@ -50,6 +50,38 @@ const StoreMappingLive = Layer.effect(
 )
 
 /**
+ * Refuses a batch with an entry stamped too far in the server's future: its
+ * `at` or its entry id. Stamps are the writer's word, and a client's hybrid
+ * clock jumps past every stamp it receives, so one wrong clock would
+ * otherwise drag every other client ahead with it. A payload that does not
+ * decode is refused too.
+ *
+ * Refusing fails the whole batch, and the client retries it forever: a device
+ * whose clock runs ahead stays out of sync until its clock is fixed.
+ */
+const authorizeClock = ({ publicKey, storeId, entries }: {
+  readonly publicKey: string
+  readonly storeId: StoreId
+  readonly entries: ReadonlyArray<EventJournal.Entry>
+}) =>
+  Effect.gen(function*() {
+    const limit = (yield* Clock.currentTimeMillis) + MaxClockSkewMillis
+    for (const entry of entries) {
+      const event = yield* decodeTodoEntry(entry).pipe(Effect.orElseSucceed(() => null))
+      const refuse = (message: string) =>
+        new Server.EventLogServerAuthError({ reason: "Forbidden", publicKey, storeId, message })
+      if (event === null) return yield* refuse(`entry ${entry.idString}: payload does not decode`)
+      const stamp = Math.max(
+        EventJournal.entryIdMillis(entry.id),
+        event === undefined ? 0 : stampMillis(event, entry.id)
+      )
+      if (stamp > limit) {
+        return yield* refuse(`entry ${entry.idString}: stamped ${stamp - limit + MaxClockSkewMillis} ms ahead`)
+      }
+    }
+  })
+
+/**
  * Any identity may connect: a `publicKey` is a random id, and the server binds
  * it to its signing key on first contact, so only the holder of the secret
  * can use it afterwards. What a key may touch is decided per store.
@@ -66,7 +98,7 @@ const AuthorizationLive = Layer.effect(
     return {
       authorizeIdentity: () => Effect.void,
       authorizeRead: authorizeMember,
-      authorizeWrite: authorizeMember
+      authorizeWrite: (request) => Effect.andThen(authorizeMember(request), authorizeClock(request))
     }
   })
 )
