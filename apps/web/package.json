@@ -7,7 +7,7 @@
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit",
-    "test": "tsx src/features/posts/postDraft.assert.ts"
+    "test": "tsx src/features/posts/postDraft.assert.ts && tsx src/features/todos/projection.assert.ts && tsx src/features/todos/clock.assert.ts"
   },
   "dependencies": {
     "@effect/atom-vue": "4.0.2",

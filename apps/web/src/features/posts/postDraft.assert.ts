@@ -11,22 +11,7 @@
  */
 import { _authorName, _tags, _title, _visibility, applyPatch, type Post } from "@effect_lab/shared"
 import { _tagsAsText, draftPatch, patchFields, rebaseDraft, rebaseFields } from "./postDraft.js"
-
-// A local assert, so this app needs no Node type definitions.
-const show = (u: unknown) => JSON.stringify(u)
-
-const assert = {
-  equal: (actual: unknown, expected: unknown, note?: string) => {
-    if (actual !== expected) {
-      throw new Error(`expected ${show(expected)}, got ${show(actual)}${note ? ` — ${note}` : ""}`)
-    }
-  },
-  deepEqual: (actual: unknown, expected: unknown, note?: string) => {
-    if (show(actual) !== show(expected)) {
-      throw new Error(`expected ${show(expected)}, got ${show(actual)}${note ? ` — ${note}` : ""}`)
-    }
-  }
-}
+import { assert, runTests, type Test } from "../../shared/testing.js"
 
 const post: Post = {
   id: 1,
@@ -40,7 +25,7 @@ const post: Post = {
 /** The form opened on `post`, so the draft and its seed are the same value. */
 const untouched = { edited: post, from: post }
 
-const tests: Array<[string, () => void]> = [
+const tests: ReadonlyArray<Test> = [
   ["a field nobody touched takes the incoming value", () => {
     const next = { ...post, title: "FROM THE LIST" }
     const out = rebaseDraft(next, untouched.edited, untouched.from)
@@ -184,19 +169,4 @@ const tests: Array<[string, () => void]> = [
   }]
 ]
 
-let failed = 0
-for (const [name, run] of tests) {
-  try {
-    run()
-    console.log(`  ok  ${name}`)
-  } catch (error) {
-    failed++
-    console.error(`FAIL  ${name}`)
-    console.error(`      ${(error as Error).message.split("\n")[0]}`)
-  }
-}
-
-console.log(`\n${tests.length - failed}/${tests.length} passed`)
-if (failed > 0) {
-  throw new Error(`${failed} draft rebase assertion(s) failed`)
-}
+runTests(tests)

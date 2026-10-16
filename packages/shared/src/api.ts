@@ -1,6 +1,7 @@
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/http-api"
 import { Schema } from "effect"
 import { Post, PostPatch, Retag } from "./schemas.js"
+import { CreatedTodoList, TodoList } from "./todos/lists.js"
 
 export class NotFound extends Schema.TaggedError<NotFound>()("NotFound", {}) {}
 
@@ -43,4 +44,30 @@ export class PostsApi extends HttpApiGroup.make("posts")
   .prefix("/posts")
 {}
 
-export class Api extends HttpApi.make("api").add(PostsApi) {}
+/**
+ * Todo-lists and who belongs to them. The caller names its own `publicKey`
+ * and nothing proves it here, so no endpoint may reveal what grants access:
+ * listing a key's lists gives names, never invite codes. Creating or joining
+ * only ever adds that key, and writing to a store still takes the key's
+ * secret, which the sync server checks.
+ */
+export class ListsApi extends HttpApiGroup.make("lists")
+  .add(
+    HttpApiEndpoint.get("lists", "/", {
+      query: { publicKey: Schema.String },
+      success: Schema.Array(TodoList)
+    }),
+    HttpApiEndpoint.post("createList", "/", {
+      payload: Schema.Struct({ name: Schema.String, publicKey: Schema.String }),
+      success: CreatedTodoList
+    }),
+    HttpApiEndpoint.post("joinList", "/join", {
+      payload: Schema.Struct({ inviteCode: Schema.String, publicKey: Schema.String }),
+      success: TodoList,
+      error: NotFoundError
+    })
+  )
+  .prefix("/lists")
+{}
+
+export class Api extends HttpApi.make("api").add(PostsApi).add(ListsApi) {}

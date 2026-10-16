@@ -1,0 +1,15 @@
+# Postgres du serveur EventLog, pour le dev : `docker compose up -d`.
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: effect_lab
+      POSTGRES_PASSWORD: effect_lab
+      POSTGRES_DB: effect_lab
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

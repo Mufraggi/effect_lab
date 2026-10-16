@@ -23,6 +23,9 @@ importers:
       '@effect/platform-node':
         specifier: 4.0.2
         version: 4.0.2(effect@4.0.2)(redis@6.3.0)
+      '@effect/sql-pg':
+        specifier: 4.0.2
+        version: 4.0.2(effect@4.0.2)
       '@effect_lab/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -76,10 +79,22 @@ importers:
 
   packages/exemple:
     dependencies:
+      '@effect/platform-node':
+        specifier: 4.0.2
+        version: 4.0.2(effect@4.0.2)(redis@6.3.0)
+      '@effect_lab/shared':
+        specifier: workspace:*
+        version: link:../shared
       effect:
         specifier: ^4.0.2
         version: 4.0.2
     devDependencies:
+      '@types/node':
+        specifier: ^22.20.5
+        version: 22.20.5
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
@@ -148,6 +163,11 @@ packages:
     peerDependencies:
       effect: ^4.0.2
       redis: '>=5.0.0 <7.0.0'
+
+  '@effect/sql-pg@4.0.2':
+    resolution: {integrity: sha512-i2N5F0L5s1S8Nx2I8V7k+awBinP26b5xiiHL1zn5b6RALNnloiU7FK1yS4dAkmqG9B0EcOVxvJrIpoMWwrB4hw==}
+    peerDependencies:
+      effect: ^4.0.2
 
   '@esbuild/aix-ppc64@0.28.2':
     resolution: {integrity: sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==}
@@ -954,6 +974,10 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+
+  '@effect/sql-pg@4.0.2(effect@4.0.2)':
+    dependencies:
+      effect: 4.0.2
 
   '@esbuild/aix-ppc64@0.28.2':
     optional: true

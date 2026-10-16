@@ -29,11 +29,25 @@ celle du bundle : une slice ne coûte que ce qu'elle vaut à qui y navigue.
 
 ```sh
 pnpm install
+cp .env.example .env    # DATABASE_URL du serveur EventLog
+docker compose up -d    # Postgres
 pnpm dev
 ```
 
 - Front : http://localhost:5173
 - API : http://localhost:3001
+- Serveur EventLog (WebSocket) : ws://localhost:3001/eventlog, sur le même serveur que l'API, proxifié par Vite sous `/eventlog`
+
+## EventLog : la todo-list hors ligne
+
+La page `/todos` fait tourner deux clients EventLog complets, Alice et Bob : chacun a son identité, son journal IndexedDB et son WebSocket. Le bouton « Passer hors ligne » ferme le scope qui tient la connexion, et la reconnexion envoie ce qui a été écrit entre-temps.
+
+| Ce que ça montre | Où |
+| --- | --- |
+| Les events, la projection, la résolution des conflits (dernier écrivain gagne par champ, comparé sur l'id d'entrée, et marqueurs de suppression) | `packages/shared/src/todos/` (contrat) et `apps/web/src/features/todos/` (projection, handlers) |
+| Le serveur de synchro, persistant dans Postgres (une seule instance), monté sur le routeur HTTP de l'API | `apps/api/src/features/todos/eventlog.ts` |
+| En ligne = un atom qui tient le remote ; une factory d'atoms par utilisateur | `apps/web/src/features/todos/todoClient.ts` |
+| La recherche, sourcée dans le code d'effect 4.0.2 | `docs/research/effect-v4-eventlog.md` |
 
 ## Les optics, et où les regarder
 
@@ -43,7 +57,7 @@ Les optics feuilles vivent dans `packages/shared/src/optics.ts` et **nulle part 
 | --- | --- |
 | Une table `[optic, lecteur]` qui applique un patch partiel — ajouter un champ = une ligne | `packages/shared/src/optics.ts` (`patchFields`) |
 | `refine` pour adresser un post **par id**, sans index | `optics.ts` (`_postById`, `_titleById`) |
-| Une traversal qui réécrit un tag sur toute la collection, **tag par tag** | `apps/api/src/repo.ts` (`retag`) |
+| Une traversal qui réécrit un tag sur toute la collection, **tag par tag** | `apps/api/src/features/posts/repo.ts` (`retag`) |
 | `flatten` : franchir **deux niveaux de tableau**, que `forEach` ne traverse pas | `optics.ts` (`flatten`, `_everyTag`) |
 | `optionalKey` : écrire `undefined` **supprime** la clé | `optics.ts` (`reconcilePublication`) |
 | L'optic comme **reducer optimiste** — il décrit où l'édition atterrit dans le cache | `apps/web/src/features/posts/posts.ts` |
