@@ -29,6 +29,8 @@ celle du bundle : une slice ne coûte que ce qu'elle vaut à qui y navigue.
 
 ```sh
 pnpm install
+cp .env.example .env    # DATABASE_URL du serveur EventLog
+docker compose up -d    # Postgres
 pnpm dev
 ```
 
@@ -43,7 +45,7 @@ La page `/todos` fait tourner deux clients EventLog complets, Alice et Bob : cha
 | Ce que ça montre | Où |
 | --- | --- |
 | Les events, la projection, la résolution des conflits (dernier écrivain gagne par champ, comparé sur l'id d'entrée, et marqueurs de suppression) | `packages/shared/src/todos/` (contrat) et `apps/web/src/features/todos/` (projection, handlers) |
-| Le serveur de synchro, en mémoire, monté sur le routeur HTTP de l'API | `apps/api/src/features/todos/eventlog.ts` |
+| Le serveur de synchro, persistant dans Postgres (une seule instance), monté sur le routeur HTTP de l'API | `apps/api/src/features/todos/eventlog.ts` |
 | En ligne = un atom qui tient le remote ; une factory d'atoms par utilisateur | `apps/web/src/features/todos/todoClient.ts` |
 | La recherche, sourcée dans le code d'effect 4.0.2 | `docs/research/effect-v4-eventlog.md` |
 

@@ -1,13 +1,18 @@
 /**
- * The sync server: an unencrypted EventLog server, in memory, mounted on the
- * API's HTTP router as a WebSocket route at `/eventlog`.
+ * The sync server: an unencrypted EventLog server, mounted on the API's HTTP
+ * router as a WebSocket route at `/eventlog`.
+ *
+ * The journal lives in SQL: the storage creates its own tables on startup and
+ * keeps the server's remote id, so clients recognise the same server after a
+ * restart. It still pushes new entries to subscribers from memory, so only one
+ * API instance may run. The `SqlClient` is left to the caller to provide.
  *
  * Alice and Bob share the todo-list because the server accepts exactly one
  * store, `TodoStoreId`, whoever asks for it; any other store id fails with
  * "store not found". Authorization is ours to write: no layer is provided.
  */
 import { Effect, Layer } from "effect"
-import { EventLog, EventLogServerUnencrypted as Server } from "effect/eventlog"
+import { EventLog, EventLogServerUnencrypted as Server, SqlEventLogServerUnencrypted } from "effect/eventlog"
 import { RpcSerialization, RpcServer } from "effect/rpc"
 import { Alice, Bob, TodoEvents, TodoSchema, TodoStoreId } from "@effect_lab/shared"
 
@@ -45,7 +50,7 @@ const AuthorizationLive = Layer.succeed(Server.EventLogServerAuthorization, {
  */
 export const EventLogLive = Server.layer(TodoSchema, TodoHandlersServer).pipe(
   Layer.provide([
-    Server.layerStorageMemory,
+    SqlEventLogServerUnencrypted.layerStorage(),
     Server.layerStoreMappingStatic({ storeId: TodoStoreId }),
     AuthorizationLive
   ]),
