@@ -3,7 +3,8 @@ import { EventJournal, EventLog, EventLogRemote } from "effect/eventlog"
 import { Atom } from "effect/reactivity"
 import { RpcClient, RpcSerialization } from "effect/rpc"
 import { Socket } from "effect/socket"
-import { type TodoEvent, TodoSchema, TodoStoreId } from "@effect_lab/shared"
+import type { StoreId } from "effect/eventlog/EventLogMessage"
+import { type TodoEvent, TodoSchema } from "@effect_lab/shared"
 import { TodoHandlersClient } from "./handlers.js"
 import { ConflictLog, TodoState } from "./state.js"
 
@@ -20,28 +21,32 @@ const RemoteLive = EventLogRemote.layerUnencrypted.pipe(
   Layer.provide(Socket.layerWebSocketConstructorGlobal)
 )
 
-/** Who the client is, and where it keeps its journal. */
+/** Who the client is, which list it syncs, and where it keeps its journal. */
 export interface TodoUser {
-  /** The IndexedDB database holding this user's journal. */
+  /**
+   * The IndexedDB database holding this list's journal. One per list: journal
+   * entries do not record their store, so two lists must not share one.
+   */
   readonly database: string
   readonly identity: EventLog.Identity["Service"]
+  readonly storeId: StoreId
 }
 
-const ClientLive = ({ database, identity }: TodoUser) =>
+const ClientLive = ({ database, identity, storeId }: TodoUser) =>
   EventLog.layer(TodoSchema, TodoHandlersClient).pipe(
     Layer.provideMerge([TodoState.layer, ConflictLog.layer]),
     Layer.provide([
       // Its own IndexedDB database: the events survive a page reload.
       EventJournal.layerIndexedDb({ database }),
       Layer.succeed(EventLog.Identity, identity),
-      Layer.succeed(EventLog.CurrentStoreId, TodoStoreId)
+      Layer.succeed(EventLog.CurrentStoreId, storeId)
     ])
   )
 
 export type Connection = "online" | "offline"
 
 /**
- * One user's client, as atoms.
+ * One user's client for one list, as atoms.
  *
  * Each user gets its own runtime factory, hence its own `MemoMap`. With the
  * shared `Atom.runtime`, the module-level layers inside `EventLog.layer` (the

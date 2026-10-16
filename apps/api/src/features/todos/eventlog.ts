@@ -7,14 +7,16 @@
  * restart. It still pushes new entries to subscribers from memory, so only one
  * API instance may run. The `SqlClient` is left to the caller to provide.
  *
- * Alice and Bob share the todo-list because the server accepts exactly one
- * store, `TodoStoreId`, whoever asks for it; any other store id fails with
- * "store not found". Authorization is ours to write: no layer is provided.
+ * One store per todo-list: a store exists once `TodoLists` has created the
+ * list, and only its members may read or write it. The `TodoLists` service is
+ * left to the caller too, since the HTTP API shares it.
  */
 import { Effect, Layer } from "effect"
+import type { StoreId } from "effect/eventlog/EventLogMessage"
 import { EventLog, EventLogServerUnencrypted as Server, SqlEventLogServerUnencrypted } from "effect/eventlog"
 import { RpcSerialization, RpcServer } from "effect/rpc"
-import { Alice, Bob, TodoEvents, TodoSchema, TodoStoreId } from "@effect_lab/shared"
+import { TodoEvents, TodoSchema } from "@effect_lab/shared"
+import { TodoLists } from "../lists/repo.js"
 
 /**
  * `Server.layer` requires a handler for every event. They must not fail: a
@@ -31,18 +33,43 @@ const TodoHandlersServer = EventLog.group(TodoEvents, (h) =>
     .handle("TodoDeleted", ({ payload }) => Effect.log(`TodoDeleted ${payload.id}`))
 )
 
-const allowed = new Set([Alice.publicKey, Bob.publicKey])
+/** A store is a todo-list: unknown ids fail as "store not found". */
+const StoreMappingLive = Layer.effect(
+  Server.StoreMapping,
+  Effect.gen(function*() {
+    const lists = yield* TodoLists
+    return {
+      resolve: ({ publicKey, storeId }) =>
+        Effect.flatMap(lists.exists(storeId), (exists) =>
+          exists
+            ? Effect.succeed(storeId)
+            : Effect.fail(new Server.EventLogServerStoreError({ reason: "NotFound", publicKey, storeId }))),
+      hasStore: ({ storeId }) => lists.exists(storeId)
+    }
+  })
+)
 
-const authorizeKnownKey = ({ publicKey }: { readonly publicKey: string }) =>
-  allowed.has(publicKey)
-    ? Effect.void
-    : Effect.fail(new Server.EventLogServerAuthError({ reason: "Forbidden", publicKey }))
-
-const AuthorizationLive = Layer.succeed(Server.EventLogServerAuthorization, {
-  authorizeIdentity: authorizeKnownKey,
-  authorizeRead: authorizeKnownKey,
-  authorizeWrite: authorizeKnownKey
-})
+/**
+ * Any identity may connect: a `publicKey` is a random id, and the server binds
+ * it to its signing key on first contact, so only the holder of the secret
+ * can use it afterwards. What a key may touch is decided per store.
+ */
+const AuthorizationLive = Layer.effect(
+  Server.EventLogServerAuthorization,
+  Effect.gen(function*() {
+    const lists = yield* TodoLists
+    const authorizeMember = ({ publicKey, storeId }: { readonly publicKey: string; readonly storeId: StoreId }) =>
+      Effect.flatMap(lists.isMember({ publicKey, storeId }), (member) =>
+        member
+          ? Effect.void
+          : Effect.fail(new Server.EventLogServerAuthError({ reason: "Forbidden", publicKey, storeId })))
+    return {
+      authorizeIdentity: () => Effect.void,
+      authorizeRead: authorizeMember,
+      authorizeWrite: authorizeMember
+    }
+  })
+)
 
 /**
  * JSON is not an option: the protocol carries `Uint8Array`s, so the client
@@ -51,7 +78,7 @@ const AuthorizationLive = Layer.succeed(Server.EventLogServerAuthorization, {
 export const EventLogLive = Server.layer(TodoSchema, TodoHandlersServer).pipe(
   Layer.provide([
     SqlEventLogServerUnencrypted.layerStorage(),
-    Server.layerStoreMappingStatic({ storeId: TodoStoreId }),
+    StoreMappingLive,
     AuthorizationLive
   ]),
   Layer.provide(RpcServer.layerProtocolWebsocket({ path: "/eventlog" })),

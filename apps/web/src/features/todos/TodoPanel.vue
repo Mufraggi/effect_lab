@@ -1,127 +1,119 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
-import { Match } from "effect"
+import { Exit } from "effect"
+import type { EventLog } from "effect/eventlog"
+import type { StoreId } from "effect/eventlog/EventLogMessage"
 import { AsyncResult } from "effect/reactivity"
-import { useAtom, useAtomValue } from "@effect/atom-vue"
-import { TodoId } from "@effect_lab/shared"
-import type { Rejection, Todo } from "./projection.js"
-import type { TodoClient } from "./todoClient.js"
+import { useAtomValue } from "@effect/atom-vue"
+import type { TodoList } from "@effect_lab/shared"
+import { createList, joinList, listsKey, listsQuery } from "./lists.js"
+import { makeTodoClient, type TodoClient } from "./todoClient.js"
+import TodoListView from "./TodoListView.vue"
 import { useMutation } from "../../shared/useMutation.js"
 
-const props = defineProps<{ name: string; client: TodoClient }>()
+/** `dbPrefix` names this panel's IndexedDB databases; `identity` is who it signs as. */
+const props = defineProps<{ name: string; dbPrefix: string; identity: EventLog.Identity["Service"] }>()
 
-const [online, setOnline] = useAtom(() => props.client.online)
-const connection = useAtomValue(() => props.client.connection)
-const projection = useAtomValue(() => props.client.todos)
-const conflicts = useAtomValue(() => props.client.conflicts)
-const { run: write, error } = useMutation(() => props.client.write)
+const publicKey = props.identity.publicKey
+const lists = useAtomValue(() => listsQuery(publicKey))
+const create = useMutation(() => createList)
+const join = useMutation(() => joinList)
 
-const status = computed(() => {
-  const c = connection.value
-  if (AsyncResult.isSuccess(c)) return c.value === "online" ? "en ligne" : "hors ligne"
-  if (AsyncResult.isFailure(c)) return "serveur injoignable"
-  return "connexion…"
-})
-
-const todos = computed<ReadonlyArray<Todo>>(() =>
-  AsyncResult.isSuccess(projection.value) ? [...projection.value.value.todos.values()] : []
+const available = computed<ReadonlyArray<TodoList>>(() =>
+  AsyncResult.isSuccess(lists.value) ? lists.value.value : []
 )
 
-const describe = ({ _tag, event }: Rejection): string => {
-  const what = Match.valueTags(event, {
-    TodoAdded: ({ payload }) => `TodoAdded(${payload.id}) "${payload.title}"`,
-    TodoRenamed: ({ payload }) => `TodoRenamed(${payload.id}) "${payload.title}"`,
-    TodoToggled: ({ payload }) => `TodoToggled(${payload.id}) done=${payload.done}`,
-    TodoDeleted: ({ payload }) => `TodoDeleted(${payload.id})`
-  })
-  return _tag === "Stale"
-    ? `${what} ignoré : une écriture plus récente est déjà appliquée`
-    : `${what} ignoré : la todo est supprimée`
+/** The chosen list, or the first one until something is chosen. */
+const selected = ref<StoreId | null>(null)
+const current = computed(() => available.value.find((list) => list.id === selected.value) ?? available.value[0])
+
+/**
+ * One client per list, kept when switching: each owns a runtime, a socket and
+ * an IndexedDB database, and rebuilding them on every switch would replay the
+ * journal for nothing.
+ */
+const clients = new Map<StoreId, TodoClient>()
+const clientFor = (storeId: StoreId) => {
+  let client = clients.get(storeId)
+  if (client === undefined) {
+    client = makeTodoClient({ database: `${props.dbPrefix}-${storeId}`, identity: props.identity, storeId })
+    clients.set(storeId, client)
+  }
+  return client
 }
+const client = computed(() => (current.value === undefined ? undefined : clientFor(current.value.id)))
 
-const conflictMessages = computed<ReadonlyArray<string>>(() =>
-  AsyncResult.isSuccess(conflicts.value) ? conflicts.value.value.map(describe) : []
-)
+/**
+ * Invite codes of the lists created here. The server hands a code out once,
+ * at creation, so it is gone after a reload: share it before then.
+ */
+const inviteCodes = ref(new Map<StoreId, string>())
+const inviteCode = computed(() => (current.value === undefined ? undefined : inviteCodes.value.get(current.value.id)))
 
-const title = ref("")
+const newName = ref("")
 const add = async () => {
-  const value = title.value.trim()
-  if (value === "") return
-  title.value = ""
-  await write({ _tag: "TodoAdded", payload: { id: TodoId.make(crypto.randomUUID().slice(0, 8)), title: value } })
+  const name = newName.value.trim()
+  if (name === "") return
+  const exit = await create.run({ payload: { name, publicKey }, reactivityKeys: listsKey(publicKey) })
+  if (Exit.isSuccess(exit)) {
+    newName.value = ""
+    inviteCodes.value.set(exit.value.id, exit.value.inviteCode)
+    selected.value = exit.value.id
+  }
 }
 
-/** The input that fired a `change` event. */
-const inputOf = (e: Event) => e.target as HTMLInputElement
-
-const toggle = (todo: Todo, e: Event) =>
-  write({ _tag: "TodoToggled", payload: { id: todo.id, done: inputOf(e).checked } })
-
-const rename = (todo: Todo, e: Event) =>
-  write({ _tag: "TodoRenamed", payload: { id: todo.id, title: inputOf(e).value } })
-
-const remove = (todo: Todo) => write({ _tag: "TodoDeleted", payload: { id: todo.id } })
+const codeToJoin = ref("")
+const enter = async () => {
+  const code = codeToJoin.value.trim()
+  if (code === "") return
+  const exit = await join.run({ payload: { inviteCode: code, publicKey }, reactivityKeys: listsKey(publicKey) })
+  if (Exit.isSuccess(exit)) {
+    codeToJoin.value = ""
+    selected.value = exit.value.id
+  }
+}
 </script>
 
 <template>
-  <section class="panel" :class="{ offline: !online }">
+  <section class="panel">
     <header>
       <h2>{{ name }}</h2>
-      <span class="status">{{ status }}</span>
-      <button @click="setOnline(!online)">
-        {{ online ? "Passer hors ligne" : "Revenir en ligne" }}
-      </button>
+      <code :title="publicKey">{{ publicKey.slice(0, 8) }}</code>
     </header>
 
+    <label v-if="available.length > 0" class="picker">
+      Liste
+      <select :value="current?.id" @change="selected = ($event.target as HTMLSelectElement).value as StoreId">
+        <option v-for="list in available" :key="list.id" :value="list.id">{{ list.name }}</option>
+      </select>
+    </label>
+    <p v-if="inviteCode" class="invite">
+      Code d'invitation : <code>{{ inviteCode }}</code>
+    </p>
+
     <form @submit.prevent="add">
-      <input v-model="title" placeholder="Nouvelle todo" aria-label="nouvelle todo" />
-      <button type="submit">Ajouter</button>
+      <input v-model="newName" placeholder="Nouvelle liste" aria-label="nouvelle liste" />
+      <button type="submit" :disabled="create.pending.value">Créer</button>
+    </form>
+    <form @submit.prevent="enter">
+      <input v-model="codeToJoin" placeholder="Code d'invitation" aria-label="code d'invitation" />
+      <button type="submit" :disabled="join.pending.value">Rejoindre</button>
     </form>
 
-    <ul class="todos">
-      <li v-for="todo in todos" :key="todo.id">
-        <input
-          type="checkbox"
-          :checked="todo.done"
-          aria-label="faite"
-          @change="toggle(todo, $event)"
-        />
-        <input
-          class="title"
-          :class="{ done: todo.done }"
-          :value="todo.title"
-          aria-label="titre"
-          @change="rename(todo, $event)"
-        />
-        <code>{{ todo.id }}</code>
-        <button aria-label="supprimer" @click="remove(todo)">×</button>
-      </li>
-      <li v-if="todos.length === 0" class="empty">(vide)</li>
-    </ul>
+    <p v-if="AsyncResult.isFailure(lists)" class="error" role="alert">Listes indisponibles</p>
+    <p v-if="create.error.value" class="error" role="alert">{{ create.error.value }}</p>
+    <p v-if="join.error.value" class="error" role="alert">{{ join.error.value }}</p>
 
-    <p v-if="error" class="error" role="alert">{{ error }}</p>
-
-    <details :open="conflictMessages.length > 0">
-      <summary>Conflits résolus ici ({{ conflictMessages.length }})</summary>
-      <ul class="conflicts">
-        <li v-for="(message, i) in conflictMessages" :key="i">{{ message }}</li>
-      </ul>
-    </details>
+    <TodoListView v-if="client && current" :key="current.id" :client="client" />
+    <p v-else class="empty">Créez une liste ou rejoignez-en une.</p>
   </section>
 </template>
 
 <style scoped>
 .panel {
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 0.75rem;
   display: grid;
-  gap: 0.75rem;
+  gap: 0.6rem;
   align-content: start;
-}
-.panel.offline {
-  border-style: dashed;
-  background: #fafafa;
 }
 header {
   display: flex;
@@ -132,8 +124,21 @@ h2 {
   margin: 0;
   font-size: 1.1rem;
 }
-.status {
-  margin-right: auto;
+code {
+  font-size: 0.7rem;
+  color: #888;
+}
+.picker {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.85rem;
+}
+.picker select {
+  flex: 1;
+}
+.invite {
+  margin: 0;
   font-size: 0.8rem;
   color: #555;
 }
@@ -145,45 +150,13 @@ form input {
   flex: 1;
   min-width: 0;
 }
-.todos,
-.conflicts {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 0.35rem;
-}
-.todos li {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-}
-.title {
-  flex: 1;
-  min-width: 0;
-}
-.title.done {
-  text-decoration: line-through;
-  color: #777;
-}
-code {
-  font-size: 0.7rem;
-  color: #888;
-}
 .empty {
   color: #888;
   font-size: 0.85rem;
 }
-.conflicts li {
-  font-family: ui-monospace, monospace;
-  font-size: 0.75rem;
-}
-summary {
-  font-size: 0.85rem;
-  cursor: pointer;
-}
 .error {
   color: #a00;
   font-size: 0.8rem;
+  margin: 0;
 }
 </style>
