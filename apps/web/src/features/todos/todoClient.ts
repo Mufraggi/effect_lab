@@ -4,7 +4,7 @@ import { Atom } from "effect/reactivity"
 import { RpcClient, RpcSerialization } from "effect/rpc"
 import { Socket } from "effect/socket"
 import type { StoreId } from "effect/eventlog/EventLogMessage"
-import { type TodoEvent, TodoSchema } from "@effect_lab/shared"
+import { stampEvent, type TodoEvent, TodoSchema } from "@effect_lab/shared"
 import { TodoHandlersClient } from "./handlers.js"
 import { ConflictLog, HybridClock, TodoState } from "./state.js"
 
@@ -75,13 +75,13 @@ export const makeTodoClient = (user: TodoUser) => {
 
   /** Every edit is stamped here, on the hybrid clock: callers never pass `at`. */
   const write = runtime.fn(Effect.fnUntraced(function*(event: TodoEvent) {
-    const write = yield* EventLog.makeClient(TodoSchema)
+    const client = yield* EventLog.makeClient(TodoSchema)
     const at = yield* HybridClock.use((clock) => clock.tick)
-    return yield* Match.valueTags(event, {
-      TodoAdded: ({ payload }) => write("TodoAdded", { ...payload, at }),
-      TodoRenamed: ({ payload }) => write("TodoRenamed", { ...payload, at }),
-      TodoToggled: ({ payload }) => write("TodoToggled", { ...payload, at }),
-      TodoDeleted: ({ payload }) => write("TodoDeleted", payload)
+    return yield* Match.valueTags(stampEvent(event, at), {
+      TodoAdded: ({ payload }) => client("TodoAdded", payload),
+      TodoRenamed: ({ payload }) => client("TodoRenamed", payload),
+      TodoToggled: ({ payload }) => client("TodoToggled", payload),
+      TodoDeleted: ({ payload }) => client("TodoDeleted", payload)
     })
   }))
 

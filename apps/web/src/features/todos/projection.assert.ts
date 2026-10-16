@@ -11,24 +11,9 @@
  */
 import { Result } from "effect"
 import { EventJournal } from "effect/eventlog"
-import { type TodoEvent, TodoId } from "@effect_lab/shared"
-import { applyTodoEvent, emptyTodoState, type Rejection, type TodoStateShape } from "./projection.js"
-
-// A local assert, so this app needs no Node type definitions.
-const show = (u: unknown) => JSON.stringify(u)
-
-const assert = {
-  equal: (actual: unknown, expected: unknown, note?: string) => {
-    if (actual !== expected) {
-      throw new Error(`expected ${show(expected)}, got ${show(actual)}${note ? ` — ${note}` : ""}`)
-    }
-  },
-  deepEqual: (actual: unknown, expected: unknown, note?: string) => {
-    if (show(actual) !== show(expected)) {
-      throw new Error(`expected ${show(expected)}, got ${show(actual)}${note ? ` — ${note}` : ""}`)
-    }
-  }
-}
+import { StampMillis, type TodoEvent, TodoId } from "@effect_lab/shared"
+import { applyTodoEvent, emptyTodoState, foldTodoEvents, type Rejection, type TodoStateShape } from "./projection.js"
+import { assert, runTests, type Test } from "../../shared/testing.js"
 
 const id = TodoId.make("t1")
 
@@ -44,14 +29,16 @@ const unchecked = at(5, { _tag: "TodoToggled", payload: { id, done: false } })
 const removed = at(6, { _tag: "TodoDeleted", payload: { id } })
 
 const hour = 3_600_000
+const stamp = StampMillis.make
 /** Alice's device runs an hour ahead: her entry id and her stamp say so. */
-const aliceAhead = at(2 + hour, { _tag: "TodoRenamed", payload: { id, title: "alice", at: 2 + hour } })
+const aliceAhead = at(2 + hour, { _tag: "TodoRenamed", payload: { id, title: "alice", at: stamp(2 + hour) } })
+const aliceAddsAhead = at(1 + hour, { _tag: "TodoAdded", payload: { id, title: "added", at: stamp(1 + hour) } })
 /**
  * Bob renames after receiving Alice's rename. His wall clock is right, so his
  * entry id is older than hers; his hybrid clock has seen her stamp, so his
  * `at` is later.
  */
-const bobAfter = at(10, { _tag: "TodoRenamed", payload: { id, title: "bob", at: 3 + hour } })
+const bobAfter = at(10, { _tag: "TodoRenamed", payload: { id, title: "bob", at: stamp(3 + hour) } })
 const bobWithoutStamp = at(10, { _tag: "TodoRenamed", payload: { id, title: "bob" } })
 
 /** Folds events in the order given, collecting what was rejected. */
@@ -71,7 +58,7 @@ const permutations = <A>(xs: ReadonlyArray<A>): Array<Array<A>> =>
     ? [[...xs]]
     : xs.flatMap((x, i) => permutations([...xs.slice(0, i), ...xs.slice(i + 1)]).map((rest) => [x, ...rest]))
 
-const tests: Array<[string, () => void]> = [
+const tests: ReadonlyArray<Test> = [
   ["rename vs rename: the newer title wins, whichever arrives first", () => {
     const inOrder = run([added, renamedOld, renamedNew])
     const reversed = run([added, renamedNew, renamedOld])
@@ -116,6 +103,15 @@ const tests: Array<[string, () => void]> = [
     assert.equal(run([added, aliceAhead, bobWithoutStamp]).todos[0]?.title, "alice")
   }],
 
+  ["a journal replays in stamp order: a rename made after a fast clock's add survives a reload", () => {
+    // Bob's rename has the older entry id. In entry-id order it would come
+    // first, find no todo, and be dropped.
+    for (const order of permutations([aliceAddsAhead, bobAfter])) {
+      const state = foldTodoEvents(order.map(([event, entryId]) => ({ event, entryId })))
+      assert.equal(state.todos.get(id)?.title, "bob")
+    }
+  }],
+
   ["every arrival order of the edits converges to the same todo", () => {
     const edits = [renamedOld, renamedNew, checked, unchecked]
     const expected = { id, title: "new", done: false }
@@ -125,17 +121,4 @@ const tests: Array<[string, () => void]> = [
   }]
 ]
 
-let failed = 0
-for (const [name, test] of tests) {
-  try {
-    test()
-    console.log(`  ok  ${name}`)
-  } catch (error) {
-    failed++
-    console.error(`FAIL  ${name}`)
-    console.error(`      ${(error as Error).message.split("\n")[0]}`)
-  }
-}
-
-console.log(`\n${tests.length - failed}/${tests.length} passed`)
-if (failed > 0) throw new Error(`${failed} test(s) failed`)
+runTests(tests)

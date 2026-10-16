@@ -11,11 +11,11 @@
  * list, and only its members may read or write it. The `TodoLists` service is
  * left to the caller too, since the HTTP API shares it.
  */
-import { Clock, Effect, Layer } from "effect"
+import { Clock, Effect, Layer, Result } from "effect"
 import type { StoreId } from "effect/eventlog/EventLogMessage"
 import { EventJournal, EventLog, EventLogServerUnencrypted as Server, SqlEventLogServerUnencrypted } from "effect/eventlog"
 import { RpcSerialization, RpcServer } from "effect/rpc"
-import { decodeTodoEntry, MaxClockSkewMillis, stampMillis, TodoEvents, TodoSchema } from "@effect_lab/shared"
+import { decodeTodoEntry, entryIdStamp, MaxClockSkewMillis, stampOf, TodoEvents, TodoSchema } from "@effect_lab/shared"
 import { TodoLists } from "../lists/repo.js"
 
 /**
@@ -54,10 +54,13 @@ const StoreMappingLive = Layer.effect(
  * `at` or its entry id. Stamps are the writer's word, and a client's hybrid
  * clock jumps past every stamp it receives, so one wrong clock would
  * otherwise drag every other client ahead with it. A payload that does not
- * decode is refused too.
+ * decode is refused too: that is also how a stamp that is not a finite,
+ * non-negative number gets refused.
  *
- * Refusing fails the whole batch, and the client retries it forever: a device
- * whose clock runs ahead stays out of sync until its clock is fixed.
+ * Refusing fails the whole batch, and the client retries it, later edits
+ * included. Fixing the device's clock is not enough: the refused stamps are
+ * in its journal, and its hybrid clock restarts from them. The batch goes
+ * through once real time is within the tolerance of those stamps.
  */
 const authorizeClock = ({ publicKey, storeId, entries }: {
   readonly publicKey: string
@@ -65,19 +68,21 @@ const authorizeClock = ({ publicKey, storeId, entries }: {
   readonly entries: ReadonlyArray<EventJournal.Entry>
 }) =>
   Effect.gen(function*() {
-    const limit = (yield* Clock.currentTimeMillis) + MaxClockSkewMillis
+    const now = yield* Clock.currentTimeMillis
+    const refuse = (entry: EventJournal.Entry, reason: string) =>
+      new Server.EventLogServerAuthError({
+        reason: "Forbidden",
+        publicKey,
+        storeId,
+        message: `entry ${entry.idString}: ${reason}`
+      })
     for (const entry of entries) {
-      const event = yield* decodeTodoEntry(entry).pipe(Effect.orElseSucceed(() => null))
-      const refuse = (message: string) =>
-        new Server.EventLogServerAuthError({ reason: "Forbidden", publicKey, storeId, message })
-      if (event === null) return yield* refuse(`entry ${entry.idString}: payload does not decode`)
-      const stamp = Math.max(
-        EventJournal.entryIdMillis(entry.id),
-        event === undefined ? 0 : stampMillis(event, entry.id)
-      )
-      if (stamp > limit) {
-        return yield* refuse(`entry ${entry.idString}: stamped ${stamp - limit + MaxClockSkewMillis} ms ahead`)
-      }
+      const decoded = yield* Effect.result(decodeTodoEntry(entry))
+      if (Result.isFailure(decoded)) return yield* refuse(entry, "payload does not decode")
+      // An unknown tag has no stamp of its own: only its entry id is checked.
+      const event = decoded.success
+      const stamp = Math.max(entryIdStamp(entry.id), event === undefined ? 0 : stampOf(event, entry.id).at)
+      if (stamp - now > MaxClockSkewMillis) return yield* refuse(entry, `stamped ${stamp - now} ms ahead`)
     }
   })
 

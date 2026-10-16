@@ -13,7 +13,7 @@
  */
 import { Effect, Schema } from "effect"
 import { EventJournal } from "effect/eventlog"
-import { type TodoEvent, TodoEvents } from "./events.js"
+import { StampMillis, type TodoEvent, TodoEvents } from "./events.js"
 
 /** How far ahead of the server a stamp may be. Beyond, the write is refused. */
 export const MaxClockSkewMillis = 60_000
@@ -31,8 +31,28 @@ export const decodeTodoEntry = Effect.fnUntraced(function*(entry: EventJournal.E
   return { _tag: entry.event, payload } as TodoEvent
 })
 
-/** The stamp an event is compared on: its `at`, or its entry id's time. */
-export const stampMillis = (event: TodoEvent, entryId: EventJournal.EntryId): number =>
-  "at" in event.payload && event.payload.at !== undefined
-    ? event.payload.at
-    : EventJournal.entryIdMillis(entryId)
+/** The time an entry id was minted, on its writer's wall clock. */
+export const entryIdStamp = (entryId: EventJournal.EntryId): StampMillis =>
+  StampMillis.make(EventJournal.entryIdMillis(entryId))
+
+/** `event` stamped at `at`. The spread loses the link between tag and payload, hence the cast. */
+export const stampEvent = (event: TodoEvent, at: StampMillis): TodoEvent =>
+  ({ ...event, payload: { ...event.payload, at } }) as TodoEvent
+
+/**
+ * When a write happened: its stamp, or its entry id's time for entries
+ * written before stamps existed, and the entry id to break ties, so two
+ * writes are never equal.
+ */
+export interface Stamp {
+  readonly at: StampMillis
+  readonly entryId: EventJournal.EntryId
+}
+
+export const stampOf = (event: TodoEvent, entryId: EventJournal.EntryId): Stamp => ({
+  at: event.payload.at ?? entryIdStamp(entryId),
+  entryId
+})
+
+export const compareStamps = (a: Stamp, b: Stamp): number =>
+  a.at !== b.at ? a.at - b.at : EventJournal.EntryIdOrder(a.entryId, b.entryId)

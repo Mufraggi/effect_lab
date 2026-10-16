@@ -1,24 +1,12 @@
 import { Match, Result } from "effect"
 import { EventJournal } from "effect/eventlog"
-import { stampMillis, type TodoEvent, type TodoId } from "@effect_lab/shared"
+import { compareStamps, type Stamp, stampOf, type TodoEvent, type TodoId } from "@effect_lab/shared"
 
 export interface Todo {
   readonly id: TodoId
   readonly title: string
   readonly done: boolean
 }
-
-/**
- * When a write happened: its hybrid-clock time first, the entry id to break
- * ties, so two writes are never equal.
- */
-interface Stamp {
-  readonly at: number
-  readonly id: EventJournal.EntryId
-}
-
-const compareStamps = (a: Stamp, b: Stamp): number =>
-  a.at !== b.at ? a.at - b.at : EventJournal.EntryIdOrder(a.id, b.id)
 
 /** The stamp of the last write applied to each field of a todo. */
 interface Stamps {
@@ -76,7 +64,7 @@ export const applyTodoEvent = (
   event: TodoEvent,
   entryId: EventJournal.EntryId
 ): Result.Result<TodoStateShape, Rejection> => {
-  const stamp: Stamp = { at: stampMillis(event, entryId), id: entryId }
+  const stamp = stampOf(event, entryId)
   return Match.valueTags(event, {
     TodoAdded: ({ payload }) => {
       if (s.deleted.has(payload.id)) return deleted(event)
@@ -98,3 +86,24 @@ export const applyTodoEvent = (
     }
   })
 }
+
+/** An event as read from a journal: what happened, and the entry it came in. */
+export interface JournalEvent {
+  readonly event: TodoEvent
+  readonly entryId: EventJournal.EntryId
+}
+
+/**
+ * Folds a whole journal, in stamp order. Not entry-id order: with clocks
+ * apart, a rename made after seeing an add can carry an older entry id than
+ * the add, and folding it first would drop it, since the todo does not exist
+ * yet. Stamps put every edit after what its writer had seen.
+ */
+export const foldTodoEvents = (events: ReadonlyArray<JournalEvent>): TodoStateShape =>
+  [...events]
+    .map((e) => ({ ...e, stamp: stampOf(e.event, e.entryId) }))
+    .sort((a, b) => compareStamps(a.stamp, b.stamp))
+    .reduce(
+      (state, { event, entryId }) => Result.getOrElse(applyTodoEvent(state, event, entryId), () => state),
+      emptyTodoState
+    )

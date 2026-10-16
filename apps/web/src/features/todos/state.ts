@@ -1,16 +1,15 @@
-import { Clock, Context, Effect, Layer, Ref, Result, SubscriptionRef } from "effect"
+import { Clock, Context, Effect, Layer, Ref, SubscriptionRef } from "effect"
 import { EventJournal } from "effect/eventlog"
-import { decodeTodoEntry, stampMillis, type TodoEvent } from "@effect_lab/shared"
-import { applyTodoEvent, emptyTodoState, type Rejection, type TodoStateShape } from "./projection.js"
+import { decodeTodoEntry, StampMillis, stampOf } from "@effect_lab/shared"
+import { foldTodoEvents, type JournalEvent, type Rejection, type TodoStateShape } from "./projection.js"
 
-/** The journal's events, decoded, in entry-id order. Unknown tags are skipped. */
+/** The journal's events, decoded. Unknown tags are skipped. */
 const journalEvents = Effect.gen(function*() {
   const journal = yield* EventJournal.EventJournal
-  const entries = [...(yield* journal.entries)].sort(EventJournal.Entry.Order)
-  const events: Array<readonly [TodoEvent, EventJournal.Entry]> = []
-  for (const entry of entries) {
+  const events: Array<JournalEvent> = []
+  for (const entry of yield* journal.entries) {
     const event = yield* decodeTodoEntry(entry)
-    if (event !== undefined) events.push([event, entry])
+    if (event !== undefined) events.push({ event, entryId: entry.id })
   }
   return events
 })
@@ -18,16 +17,9 @@ const journalEvents = Effect.gen(function*() {
 /**
  * Nothing replays the local journal into the handlers on startup, so after a
  * page reload the projection would be empty. It is rebuilt here instead, with
- * the same fold as the handlers. Entries go in entry-id order, so a todo is
- * always added before it is renamed or toggled.
+ * the same fold as the handlers, in stamp order (see `foldTodoEvents`).
  */
-export const replayJournal = Effect.map(journalEvents, (events) => {
-  let state = emptyTodoState
-  for (const [event, entry] of events) {
-    state = Result.getOrElse(applyTodoEvent(state, event, entry.id), () => state)
-  }
-  return state
-})
+export const replayJournal = Effect.map(journalEvents, foldTodoEvents)
 
 export class TodoState extends Context.Service<TodoState, SubscriptionRef.SubscriptionRef<TodoStateShape>>()(
   "app/TodoState"
@@ -50,21 +42,21 @@ export class ConflictLog extends Context.Service<ConflictLog, SubscriptionRef.Su
  */
 export class HybridClock extends Context.Service<HybridClock, {
   /** A stamp for a new edit: later than the wall clock and than anything seen. */
-  readonly tick: Effect.Effect<number>
+  readonly tick: Effect.Effect<StampMillis>
   /** Records a stamp written here or received, so the next tick is past it. */
-  readonly observe: (at: number) => Effect.Effect<void>
+  readonly observe: (at: StampMillis) => Effect.Effect<void>
 }>()("app/HybridClock") {
   static readonly layer = Layer.effect(
     HybridClock,
     Effect.gen(function*() {
       const events = yield* journalEvents
       const last = yield* Ref.make(
-        events.reduce((max, [event, entry]) => Math.max(max, stampMillis(event, entry.id)), 0)
+        events.reduce((max, { event, entryId }) => Math.max(max, stampOf(event, entryId).at), 0)
       )
       return HybridClock.of({
         tick: Effect.flatMap(Clock.currentTimeMillis, (now) =>
           Ref.modify(last, (seen) => {
-            const at = Math.max(now, seen + 1)
+            const at = StampMillis.make(Math.max(now, seen + 1))
             return [at, at]
           })),
         observe: (at) => Ref.update(last, (seen) => Math.max(seen, at))

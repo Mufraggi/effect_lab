@@ -16,12 +16,12 @@
  */
 import { Effect, Result, SubscriptionRef } from "effect"
 import { EventJournal, EventLog } from "effect/eventlog"
-import { stampMillis, type TodoEvent, TodoEvents } from "@effect_lab/shared"
+import { stampOf, type TodoEvent, TodoEvents } from "@effect_lab/shared"
 import { applyTodoEvent } from "./projection.js"
 import { ConflictLog, HybridClock, TodoState } from "./state.js"
 
 const apply = Effect.fnUntraced(function*(event: TodoEvent, entry: EventJournal.Entry) {
-  yield* HybridClock.use((clock) => clock.observe(stampMillis(event, entry.id)))
+  yield* HybridClock.use((clock) => clock.observe(stampOf(event, entry.id).at))
   const state = yield* TodoState
   const result = yield* SubscriptionRef.modify(state, (s) => {
     const next = applyTodoEvent(s, event, entry.id)
