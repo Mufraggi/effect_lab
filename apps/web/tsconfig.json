@@ -13,5 +13,27 @@
     "noEmit": true,
     "types": ["vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.vue", "vite.config.ts"]
+  // Par défaut, `vue-tsc` type un tag de composant inconnu en `any` et se
+  // tait : un `<UButon>` passerait, et le `components.d.ts` généré ne
+  // servirait à rien. Ce drapeau en fait une erreur — c'est lui qui rend le
+  // `components.d.ts` porteur, donc lui qui impose `vite build` avant
+  // `vue-tsc` (cf. `include` plus bas).
+  //
+  // `checkUnknownProps` reste **volontairement** éteint : les composants Nuxt
+  // UI sont en `inheritAttrs: false` et reportent `$attrs` sur leur élément
+  // interne, donc `aria-label`, `role` et `title` fonctionnent sans être
+  // déclarés en props. Le drapeau ne sait pas distinguer cette retombée d'une
+  // faute de frappe, et les 16 signalements qu'il produisait ici étaient tous
+  // des attributs d'accessibilité corrects.
+  "vueCompilerOptions": {
+    "checkUnknownComponents": true,
+    "checkUnknownEvents": true,
+    "checkUnknownDirectives": true
+  },
+
+  // `auto-imports.d.ts` et `components.d.ts` sont écrits par le plugin Vite de
+  // Nuxt UI pendant le build, et gitignorés. Sans eux les composants `U*` ne
+  // sont pas résolus, et les drapeaux ci-dessus en font une erreur — d'où
+  // `vite build` avant `vue-tsc` dans le script `build`.
+  "include": ["src/**/*.ts", "src/**/*.vue", "vite.config.ts", "auto-imports.d.ts", "components.d.ts"]
 }

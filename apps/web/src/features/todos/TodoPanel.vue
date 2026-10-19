@@ -23,6 +23,9 @@ const available = computed<ReadonlyArray<TodoList>>(() =>
   AsyncResult.isSuccess(lists.value) ? lists.value.value : []
 )
 
+/** `USelect` veut `{ label, value }` ; la source reste `available`. */
+const listItems = computed(() => available.value.map((list) => ({ label: list.name, value: list.id })))
+
 /** The chosen list, or the first one until something is chosen. */
 const selected = ref<StoreId | null>(null)
 const current = computed(() => available.value.find((list) => list.id === selected.value) ?? available.value[0])
@@ -75,88 +78,87 @@ const enter = async () => {
 </script>
 
 <template>
-  <section class="panel">
-    <header>
-      <h2>{{ name }}</h2>
-      <code :title="publicKey">{{ publicKey.slice(0, 8) }}</code>
-    </header>
+  <UCard :ui="{ body: 'grid gap-3 content-start' }">
+    <template #header>
+      <div class="flex items-baseline gap-2">
+        <h2 class="flex-1 font-semibold">{{ name }}</h2>
+        <UBadge color="neutral" variant="subtle" class="font-mono" :title="publicKey">
+          {{ publicKey.slice(0, 8) }}
+        </UBadge>
+      </div>
+    </template>
 
-    <label v-if="available.length > 0" class="picker">
-      Liste
-      <select :value="current?.id" @change="selected = ($event.target as HTMLSelectElement).value as StoreId">
-        <option v-for="list in available" :key="list.id" :value="list.id">{{ list.name }}</option>
-      </select>
-    </label>
-    <p v-if="inviteCode" class="invite">
-      Code d'invitation : <code>{{ inviteCode }}</code>
-    </p>
+    <UFormField v-if="available.length > 0" label="Liste">
+      <USelect
+        :items="listItems"
+        :model-value="current?.id"
+        class="w-full"
+        @update:model-value="selected = $event as StoreId"
+      />
+    </UFormField>
+
+    <!-- Le serveur ne donne le code qu'une fois, à la création : il disparaît au
+         rechargement, donc à partager avant. -->
+    <UAlert v-if="inviteCode" color="info" variant="subtle" icon="i-lucide-key-round">
+      <template #description>
+        Code d'invitation : <span class="font-mono">{{ inviteCode }}</span>
+      </template>
+    </UAlert>
 
     <form @submit.prevent="add">
-      <input v-model="newName" placeholder="Nouvelle liste" aria-label="nouvelle liste" />
-      <button type="submit" :disabled="create.pending.value">Créer</button>
+      <UFieldGroup class="w-full">
+        <UInput
+          v-model="newName"
+          placeholder="Nouvelle liste"
+          aria-label="nouvelle liste"
+          class="flex-1 min-w-0"
+        />
+        <!-- `loading` désactive aussi le bouton : l'invariant du `disabled` est tenu. -->
+        <UButton type="submit" :loading="create.pending.value">Créer</UButton>
+      </UFieldGroup>
     </form>
     <form @submit.prevent="enter">
-      <input v-model="codeToJoin" placeholder="Code d'invitation" aria-label="code d'invitation" />
-      <button type="submit" :disabled="join.pending.value">Rejoindre</button>
+      <UFieldGroup class="w-full">
+        <UInput
+          v-model="codeToJoin"
+          placeholder="Code d'invitation"
+          aria-label="code d'invitation"
+          class="flex-1 min-w-0"
+        />
+        <UButton type="submit" color="neutral" variant="subtle" :loading="join.pending.value">
+          Rejoindre
+        </UButton>
+      </UFieldGroup>
     </form>
 
-    <p v-if="AsyncResult.isFailure(lists)" class="error" role="alert">Listes indisponibles</p>
-    <p v-if="create.error.value" class="error" role="alert">{{ create.error.value }}</p>
-    <p v-if="join.error.value" class="error" role="alert">{{ join.error.value }}</p>
+    <UAlert
+      v-if="AsyncResult.isFailure(lists)"
+      color="error"
+      variant="subtle"
+      title="Listes indisponibles"
+      role="alert"
+    />
+    <UAlert
+      v-if="create.error.value"
+      color="error"
+      variant="subtle"
+      :description="create.error.value"
+      role="alert"
+    />
+    <UAlert
+      v-if="join.error.value"
+      color="error"
+      variant="subtle"
+      :description="join.error.value"
+      role="alert"
+    />
 
     <TodoListView v-if="client && current" :key="current.id" :client="client" />
-    <p v-else class="empty">Créez une liste ou rejoignez-en une.</p>
-  </section>
+    <UEmpty
+      v-else
+      icon="i-lucide-list-todo"
+      title="Aucune liste"
+      description="Créez une liste ou rejoignez-en une."
+    />
+  </UCard>
 </template>
-
-<style scoped>
-.panel {
-  display: grid;
-  gap: 0.6rem;
-  align-content: start;
-}
-header {
-  display: flex;
-  gap: 0.5rem;
-  align-items: baseline;
-}
-h2 {
-  margin: 0;
-  font-size: 1.1rem;
-}
-code {
-  font-size: 0.7rem;
-  color: #888;
-}
-.picker {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  font-size: 0.85rem;
-}
-.picker select {
-  flex: 1;
-}
-.invite {
-  margin: 0;
-  font-size: 0.8rem;
-  color: #555;
-}
-form {
-  display: flex;
-  gap: 0.5rem;
-}
-form input {
-  flex: 1;
-  min-width: 0;
-}
-.empty {
-  color: #888;
-  font-size: 0.85rem;
-}
-.error {
-  color: #a00;
-  font-size: 0.8rem;
-  margin: 0;
-}
-</style>

@@ -21,22 +21,50 @@ const save = async (patch: PostPatch) => {
 </script>
 
 <template>
-  <section class="page">
-    <header>
-      <h1>Posts</h1>
-      <p class="lead">
+  <section class="grid gap-6">
+    <UPageHeader title="Posts">
+      <template #description>
         L'état serveur, édité par optics : le reducer optimiste décrit
         <em>où</em> l'édition atterrit dans le cache.
-      </p>
-    </header>
+      </template>
+    </UPageHeader>
 
-    <p v-if="loading" class="status">Chargement…</p>
-    <p v-if="readError" class="error" role="alert">Erreur de lecture : {{ readError }}</p>
-    <p v-if="writeError" class="error" role="alert">Écriture refusée : {{ writeError }}</p>
+    <!-- `loading` est `AsyncResult.isInitial` — « rien à montrer encore »,
+         exactement le cas d'un squelette. -->
+    <div v-if="loading" class="grid gap-4">
+      <USkeleton v-for="n in 3" :key="n" class="h-28" />
+    </div>
+
+    <UAlert
+      v-if="readError"
+      color="error"
+      variant="subtle"
+      icon="i-lucide-triangle-alert"
+      title="Erreur de lecture"
+      role="alert"
+    >
+      <!-- C'est un `Cause.pretty` : le monospace et les retours à la ligne portent le sens. -->
+      <template #description>
+        <span class="font-mono text-xs whitespace-pre-wrap">{{ readError }}</span>
+      </template>
+    </UAlert>
+
+    <UAlert
+      v-if="writeError"
+      color="error"
+      variant="subtle"
+      icon="i-lucide-triangle-alert"
+      title="Écriture refusée"
+      role="alert"
+    >
+      <template #description>
+        <span class="font-mono text-xs whitespace-pre-wrap">{{ writeError }}</span>
+      </template>
+    </UAlert>
 
     <RetagForm @retag="retag" />
 
-    <ul class="posts">
+    <ul class="grid gap-4">
       <PostCard
         v-for="post in posts"
         :key="post.id"
@@ -54,33 +82,3 @@ const save = async (patch: PostPatch) => {
     />
   </section>
 </template>
-
-<style scoped>
-.page {
-  display: grid;
-  gap: 1.5rem;
-}
-.lead {
-  color: #555;
-  margin: 0.25rem 0 0;
-  font-size: 0.9rem;
-}
-h1 {
-  margin: 0;
-}
-.status {
-  color: #666;
-}
-.error {
-  color: #a00;
-  white-space: pre-wrap;
-  font-family: ui-monospace, monospace;
-  font-size: 0.8rem;
-}
-.posts {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  gap: 1rem;
-}
-</style>

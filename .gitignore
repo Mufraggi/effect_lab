@@ -9,3 +9,8 @@ dist
 coverage
 .idea
 .mcp.json
+
+# Écrits par le plugin Vite de Nuxt UI à chaque build d'apps/web. Biome lit ce
+# fichier (vcs.useIgnoreFile), donc les exclure ici les exclut aussi du lint.
+auto-imports.d.ts
+components.d.ts

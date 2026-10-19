@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue"
+import { computed, ref, watch } from "vue"
 import { Match } from "effect"
 import { AsyncResult } from "effect/reactivity"
 import { useAtom, useAtomValue } from "@effect/atom-vue"
@@ -23,6 +23,14 @@ const status = computed(() => {
   return "connexion…"
 })
 
+/** La même tripartition que `status`, côté couleur. */
+const statusColor = computed(() => {
+  const c = connection.value
+  if (AsyncResult.isSuccess(c)) return c.value === "online" ? "success" : "neutral"
+  if (AsyncResult.isFailure(c)) return "error"
+  return "neutral"
+})
+
 const todos = computed<ReadonlyArray<Todo>>(() =>
   AsyncResult.isSuccess(projection.value) ? [...projection.value.value.todos.values()] : []
 )
@@ -43,6 +51,21 @@ const conflictMessages = computed<ReadonlyArray<string>>(() =>
   AsyncResult.isSuccess(conflicts.value) ? conflicts.value.value.map(describe) : []
 )
 
+/**
+ * Un conflit s'annonce tout seul — c'est ce que faisait `<details :open>`.
+ *
+ * `defaultOpen` ne suffirait pas : il n'est lu qu'au montage, or le premier
+ * conflit arrive bien après. Le `ref` contrôlé rouvre à chaque nouveau conflit,
+ * et laisse quand même refermer entre-temps, ce que l'attribut lié interdisait.
+ */
+const conflictsOpen = ref(false)
+watch(
+  () => conflictMessages.value.length,
+  (count, previous) => {
+    if (count > (previous ?? 0)) conflictsOpen.value = true
+  }
+)
+
 const title = ref("")
 const add = async () => {
   const value = title.value.trim()
@@ -51,11 +74,11 @@ const add = async () => {
   await write({ _tag: "TodoAdded", payload: { id: TodoId.make(crypto.randomUUID().slice(0, 8)), title: value } })
 }
 
-/** The input that fired a `change` event. */
+/** The input that fired a `change` event — `UInput` ré-émet l'event natif. */
 const inputOf = (e: Event) => e.target as HTMLInputElement
 
-const toggle = (todo: Todo, e: Event) =>
-  write({ _tag: "TodoToggled", payload: { id: todo.id, done: inputOf(e).checked } })
+/** `UCheckbox` donne le booléen directement ; le payload écrit est inchangé. */
+const toggle = (todo: Todo, done: boolean) => write({ _tag: "TodoToggled", payload: { id: todo.id, done } })
 
 const rename = (todo: Todo, e: Event) =>
   write({ _tag: "TodoRenamed", payload: { id: todo.id, title: inputOf(e).value } })
@@ -64,121 +87,91 @@ const remove = (todo: Todo) => write({ _tag: "TodoDeleted", payload: { id: todo.
 </script>
 
 <template>
-  <section class="panel" :class="{ offline: !online }">
-    <header>
-      <span class="status">{{ status }}</span>
-      <button type="button" @click="setOnline(!online)">
-        {{ online ? "Passer hors ligne" : "Revenir en ligne" }}
-      </button>
-    </header>
+  <!--
+    Hors ligne, la carte passe en trait discontinu : ce que faisait
+    `.panel.offline`. `soft` retire l'anneau (qui, lui, ne sait pas être
+    discontinu) et `border-accented` est le seul ton de bordure qui se détache
+    du fond `bg-elevated` en thème sombre — `border-default` s'y confond.
+  -->
+  <UCard
+    :variant="online ? 'outline' : 'soft'"
+    :class="online ? undefined : 'border border-dashed border-accented'"
+    :ui="{ body: 'grid gap-3 content-start' }"
+  >
+    <template #header>
+      <div class="flex items-center gap-2">
+        <!-- `me-auto` sur un badge qui garde sa largeur de contenu : `flex-1`
+             l'étirerait jusqu'à le faire passer pour un champ. -->
+        <UBadge :color="statusColor" variant="subtle" class="me-auto">{{ status }}</UBadge>
+        <!-- C'est un état qu'on manipule, pas une action : l'interrupteur dit
+             mieux ce que fait `client.online`. -->
+        <USwitch
+          :model-value="online"
+          label="En ligne"
+          @update:model-value="setOnline($event)"
+        />
+      </div>
+    </template>
 
     <form @submit.prevent="add">
-      <input v-model="title" placeholder="Nouvelle todo" aria-label="nouvelle todo" />
-      <button type="submit">Ajouter</button>
+      <UFieldGroup class="w-full">
+        <UInput
+          v-model="title"
+          placeholder="Nouvelle todo"
+          aria-label="nouvelle todo"
+          class="flex-1 min-w-0"
+        />
+        <UButton type="submit" icon="i-lucide-plus">Ajouter</UButton>
+      </UFieldGroup>
     </form>
 
-    <ul class="todos">
-      <li v-for="todo in todos" :key="todo.id">
-        <input
-          type="checkbox"
-          :checked="todo.done"
+    <ul class="grid gap-1.5">
+      <li v-for="todo in todos" :key="todo.id" class="flex items-center gap-2">
+        <UCheckbox
+          :model-value="todo.done"
           aria-label="faite"
-          @change="toggle(todo, $event)"
+          @update:model-value="toggle(todo, $event as boolean)"
         />
-        <input
-          class="title"
-          :class="{ done: todo.done }"
-          :value="todo.title"
+        <UInput
+          :model-value="todo.title"
           aria-label="titre"
+          class="flex-1 min-w-0"
+          :ui="{ base: todo.done ? 'line-through text-muted' : '' }"
           @change="rename(todo, $event)"
         />
-        <code>{{ todo.id }}</code>
-        <button type="button" aria-label="supprimer" @click="remove(todo)">×</button>
+        <UBadge color="neutral" variant="subtle" class="font-mono text-xs">{{ todo.id }}</UBadge>
+        <UButton
+          icon="i-lucide-x"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          aria-label="supprimer"
+          @click="remove(todo)"
+        />
       </li>
-      <li v-if="todos.length === 0" class="empty">(vide)</li>
+      <li v-if="todos.length === 0" class="text-sm text-dimmed">(vide)</li>
     </ul>
 
-    <p v-if="error" class="error" role="alert">{{ error }}</p>
+    <UAlert v-if="error" color="error" variant="subtle" :description="error" role="alert" />
 
-    <details :open="conflictMessages.length > 0">
-      <summary>Conflits résolus ici ({{ conflictMessages.length }})</summary>
-      <ul class="conflicts">
-        <li v-for="(message, i) in conflictMessages" :key="i">{{ message }}</li>
-      </ul>
-    </details>
-  </section>
+    <UCollapsible v-model:open="conflictsOpen">
+      <UButton
+        color="neutral"
+        variant="ghost"
+        size="sm"
+        block
+        trailing-icon="i-lucide-chevron-down"
+        :ui="{ trailingIcon: 'group-data-[state=open]:rotate-180 transition-transform' }"
+        class="group justify-between"
+      >
+        Conflits résolus ici ({{ conflictMessages.length }})
+      </UButton>
+
+      <template #content>
+        <ul class="grid gap-1 pt-2">
+          <li v-for="(message, i) in conflictMessages" :key="i" class="font-mono text-xs">{{ message }}</li>
+        </ul>
+      </template>
+    </UCollapsible>
+  </UCard>
 </template>
-
-<style scoped>
-.panel {
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 0.75rem;
-  display: grid;
-  gap: 0.75rem;
-  align-content: start;
-}
-.panel.offline {
-  border-style: dashed;
-  background: #fafafa;
-}
-header {
-  display: flex;
-  gap: 0.5rem;
-  align-items: baseline;
-}
-.status {
-  margin-right: auto;
-  font-size: 0.8rem;
-  color: #555;
-}
-form {
-  display: flex;
-  gap: 0.5rem;
-}
-form input {
-  flex: 1;
-  min-width: 0;
-}
-.todos,
-.conflicts {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 0.35rem;
-}
-.todos li {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-}
-.title {
-  flex: 1;
-  min-width: 0;
-}
-.title.done {
-  text-decoration: line-through;
-  color: #777;
-}
-code {
-  font-size: 0.7rem;
-  color: #888;
-}
-.empty {
-  color: #888;
-  font-size: 0.85rem;
-}
-.conflicts li {
-  font-family: ui-monospace, monospace;
-  font-size: 0.75rem;
-}
-summary {
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-.error {
-  color: #a00;
-  font-size: 0.8rem;
-}
-</style>

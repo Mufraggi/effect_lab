@@ -81,82 +81,101 @@ const save = () => {
 </script>
 
 <template>
-  <form class="form" @submit.prevent="save">
-    <h2>Édition — post #{{ post.id }}</h2>
+  <!--
+    Pas de `<UForm>` : il valide via un Standard Schema, alors que la validité de
+    ce formulaire vient de `draftPatch` / `anyDirty`. Les deux mécaniques se
+    marcheraient dessus.
+  -->
+  <form class="max-w-xl" @submit.prevent="save">
+    <UCard>
+      <template #header>
+        <h2 class="font-semibold">Édition — post #{{ post.id }}</h2>
+      </template>
 
-    <label>
-      <span>Titre <em v-if="title.dirty.value">modifié</em></span>
-      <input v-model="title.model.value" />
-      <button type="button" :disabled="!title.dirty.value" @click="title.reset()">reset</button>
-    </label>
+      <div class="grid gap-3">
+        <UFormField label="Titre">
+          <template #hint>
+            <UBadge v-if="title.dirty.value" color="warning" variant="subtle" size="sm">modifié</UBadge>
+          </template>
+          <UFieldGroup class="w-full">
+            <UInput v-model="title.model.value" class="flex-1" />
+            <UButton
+              color="neutral"
+              variant="subtle"
+              :disabled="!title.dirty.value"
+              @click="title.reset()"
+            >
+              reset
+            </UButton>
+          </UFieldGroup>
+        </UFormField>
 
-    <label>
-      <span>Corps <em v-if="body.dirty.value">modifié</em></span>
-      <textarea v-model="body.model.value" rows="3" />
-      <button type="button" :disabled="!body.dirty.value" @click="body.reset()">reset</button>
-    </label>
+        <UFormField label="Corps">
+          <template #hint>
+            <UBadge v-if="body.dirty.value" color="warning" variant="subtle" size="sm">modifié</UBadge>
+          </template>
+          <UFieldGroup class="w-full">
+            <UTextarea v-model="body.model.value" :rows="3" class="flex-1" />
+            <UButton
+              color="neutral"
+              variant="subtle"
+              :disabled="!body.dirty.value"
+              @click="body.reset()"
+            >
+              reset
+            </UButton>
+          </UFieldGroup>
+        </UFormField>
 
-    <label>
-      <span>Auteur <em v-if="author.dirty.value">modifié</em></span>
-      <input v-model="author.model.value" />
-      <button type="button" :disabled="!author.dirty.value" @click="author.reset()">reset</button>
-    </label>
+        <UFormField label="Auteur">
+          <template #hint>
+            <UBadge v-if="author.dirty.value" color="warning" variant="subtle" size="sm">modifié</UBadge>
+          </template>
+          <UFieldGroup class="w-full">
+            <UInput v-model="author.model.value" class="flex-1" />
+            <UButton
+              color="neutral"
+              variant="subtle"
+              :disabled="!author.dirty.value"
+              @click="author.reset()"
+            >
+              reset
+            </UButton>
+          </UFieldGroup>
+        </UFormField>
 
-    <label>
-      <span>Tags <em v-if="tags.dirty.value">modifié</em></span>
-      <!-- .lazy: the Iso normalises the text, so only run it on change, not per keystroke. -->
-      <input v-model.lazy="tags.model.value" placeholder="effect, optics" />
-      <button type="button" @click="normaliseTags()">tout en minuscules</button>
-    </label>
+        <UFormField label="Tags">
+          <template #hint>
+            <UBadge v-if="tags.dirty.value" color="warning" variant="subtle" size="sm">modifié</UBadge>
+          </template>
+          <UFieldGroup class="w-full">
+            <!-- .lazy: the Iso normalises the text, so only run it on change, not per keystroke. -->
+            <UInput v-model.lazy="tags.model.value" placeholder="effect, optics" class="flex-1" />
+            <UButton color="neutral" variant="subtle" @click="normaliseTags()">
+              tout en minuscules
+            </UButton>
+          </UFieldGroup>
+        </UFormField>
 
-    <label>
-      <span>Visibilité <em v-if="visibility.dirty.value">modifié</em></span>
-      <select v-model="visibility.model.value">
-        <option value="draft">draft</option>
-        <option value="public">public</option>
-      </select>
-    </label>
+        <UFormField label="Visibilité">
+          <template #hint>
+            <UBadge v-if="visibility.dirty.value" color="warning" variant="subtle" size="sm">modifié</UBadge>
+          </template>
+          <USelect v-model="visibility.model.value" :items="['draft', 'public']" />
+        </UFormField>
 
-    <p class="published">
-      <template v-if="publishedAt">Publié le {{ publishedAt }}</template>
-      <template v-else>Brouillon : la clé <code>publishedAt</code> est absente</template>
-    </p>
+        <p class="text-sm text-muted">
+          <template v-if="publishedAt">Publié le {{ publishedAt }}</template>
+          <template v-else>Brouillon : la clé <code class="font-mono">publishedAt</code> est absente</template>
+        </p>
+      </div>
 
-    <footer>
-      <button type="submit" :disabled="!anyDirty">Enregistrer</button>
-      <button type="button" @click="emit('cancel')">Annuler</button>
-    </footer>
+      <template #footer>
+        <div class="flex gap-2">
+          <UButton type="submit" :disabled="!anyDirty">Enregistrer</UButton>
+          <UButton color="neutral" variant="ghost" @click="emit('cancel')">Annuler</UButton>
+        </div>
+      </template>
+    </UCard>
   </form>
 </template>
-
-<style scoped>
-.form {
-  display: grid;
-  gap: 0.75rem;
-  border: 1px solid #ccc;
-  padding: 1rem;
-  border-radius: 6px;
-  max-width: 34rem;
-}
-label {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.25rem 0.5rem;
-}
-label > span {
-  grid-column: 1 / -1;
-  font-size: 0.85rem;
-}
-em {
-  color: #b35c00;
-  font-style: normal;
-}
-.published {
-  font-size: 0.85rem;
-  margin: 0;
-}
-footer {
-  display: flex;
-  gap: 0.5rem;
-}
-</style>

@@ -20,7 +20,8 @@
     "onlyBuiltDependencies": [
       "esbuild",
       "@parcel/watcher",
-      "msgpackr-extract"
+      "msgpackr-extract",
+      "vue-demi"
     ],
     "overrides": {
       "@effect/platform-node-shared": "4.0.2"
