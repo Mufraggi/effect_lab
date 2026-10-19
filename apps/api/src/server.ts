@@ -11,15 +11,10 @@ import { EventLogLive } from "./features/todos/eventlog.js"
 import { SqlLive } from "./db.js"
 
 /** The HttpApi, one handler group per feature. */
-const ApiLive = HttpApiBuilder.layer(Api).pipe(
-  Layer.provide([PostsHandlers, ListsHandlers])
-)
+const ApiLive = HttpApiBuilder.layer(Api).pipe(Layer.provide([PostsHandlers, ListsHandlers]))
 
 /** One `TodoLists` for both: the API creates lists, the sync server checks them. */
-const AppLive = Layer.mergeAll(ApiLive, EventLogLive).pipe(
-  Layer.provide(TodoLists.layer),
-  Layer.provide(SqlLive)
-)
+const AppLive = Layer.mergeAll(ApiLive, EventLogLive).pipe(Layer.provide(TodoLists.layer), Layer.provide(SqlLive))
 
 HttpRouter.serve(AppLive).pipe(
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3001 })),

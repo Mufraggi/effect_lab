@@ -1,12 +1,5 @@
 import { Context, Effect, Layer, Ref } from "effect"
-import {
-  _everyTag,
-  _postById,
-  applyPatch,
-  NotFound,
-  type Post,
-  type PostPatch
-} from "@effect_lab/shared"
+import { _everyTag, _postById, applyPatch, NotFound, type Post, type PostPatch } from "@effect_lab/shared"
 
 const seed: ReadonlyArray<Post> = [
   {
@@ -40,23 +33,25 @@ const seed: ReadonlyArray<Post> = [
  * array. That is what makes a write actually persist: the handler hands the
  * new value back to the `Ref` instead of dropping it on the floor.
  */
-export class PostsRepo extends Context.Service<PostsRepo, {
-  readonly all: Effect.Effect<ReadonlyArray<Post>>
-  readonly byId: (id: number) => Effect.Effect<Post, NotFound>
-  readonly patch: (id: number, patch: PostPatch) => Effect.Effect<Post, NotFound>
-  readonly retag: (from: string, to: string) => Effect.Effect<ReadonlyArray<Post>>
-}>()("api/PostsRepo") {
+export class PostsRepo extends Context.Service<
+  PostsRepo,
+  {
+    readonly all: Effect.Effect<ReadonlyArray<Post>>
+    readonly byId: (id: number) => Effect.Effect<Post, NotFound>
+    readonly patch: (id: number, patch: PostPatch) => Effect.Effect<Post, NotFound>
+    readonly retag: (from: string, to: string) => Effect.Effect<ReadonlyArray<Post>>
+  }
+>()("api/PostsRepo") {
   static readonly layer = Layer.effect(
     PostsRepo,
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const ref = yield* Ref.make(seed)
 
       // Looking one element up is not an optic's job: `find` is shorter, it
       // narrows `Post | undefined` for free, and it stops at the first match.
       // Reading through `_postById` would allocate an array, check its length
       // and still need a `!` to get the element back out.
-      const lookup = (posts: ReadonlyArray<Post>, id: number) =>
-        posts.find((post) => post.id === id)
+      const lookup = (posts: ReadonlyArray<Post>, id: number) => posts.find((post) => post.id === id)
 
       const byId = (id: number) =>
         Effect.flatMap(Ref.get(ref), (posts) => {
@@ -73,7 +68,7 @@ export class PostsRepo extends Context.Service<PostsRepo, {
             const next = _postById(id).modifyAll((post) => applyPatch(post, patch))(posts)
             return [lookup(next, id), next] as const
           }),
-          (found) => found === undefined ? Effect.fail(new NotFound()) : Effect.succeed(found)
+          (found) => (found === undefined ? Effect.fail(new NotFound()) : Effect.succeed(found))
         )
 
       // One traversal renames a tag across every post, at any list length.

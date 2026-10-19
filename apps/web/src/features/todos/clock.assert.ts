@@ -16,6 +16,7 @@ const runClock = <A>(effect: Effect.Effect<A, never, HybridClock>) => Effect.run
 const tick = HybridClock.use((clock) => clock.tick)
 const observe = (at: number) => HybridClock.use((clock) => clock.observe(StampMillis.make(at)))
 
+// biome-ignore format: la table se lit comme de la prose, un tuple ["ce que ça prouve", () => { … }] par entrée. Le formatteur éclate chaque tuple sur cinq lignes et noie l'énoncé ; aucune option ne garde la forme compacte.
 const tests: ReadonlyArray<Test> = [
   ["ticks follow the wall clock and never repeat", () => {
     const [a, b] = runClock(Effect.all([tick, tick]))

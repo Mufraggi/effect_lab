@@ -25,7 +25,11 @@ const TodoTitle = Schema.Struct({ id: TodoId, title: Schema.String, at })
 export const TodoEvents = EventGroup.empty
   .add({ tag: "TodoAdded", primaryKey: (p) => p.id, payload: TodoTitle })
   .add({ tag: "TodoRenamed", primaryKey: (p) => p.id, payload: TodoTitle })
-  .add({ tag: "TodoToggled", primaryKey: (p) => p.id, payload: Schema.Struct({ id: TodoId, done: Schema.Boolean, at }) })
+  .add({
+    tag: "TodoToggled",
+    primaryKey: (p) => p.id,
+    payload: Schema.Struct({ id: TodoId, done: Schema.Boolean, at })
+  })
   .add({ tag: "TodoDeleted", primaryKey: (p) => p.id, payload: Schema.Struct({ id: TodoId, at }) })
 
 export const TodoSchema = EventLog.schema(TodoEvents)

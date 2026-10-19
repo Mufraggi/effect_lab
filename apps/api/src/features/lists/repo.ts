@@ -17,16 +17,19 @@ export type Membership = typeof Membership.Type
  * database, or reads back a row it did not write, has nothing better to tell
  * the client than a 500.
  */
-export class TodoLists extends Context.Service<TodoLists, {
-  readonly listFor: (publicKey: string) => Effect.Effect<ReadonlyArray<TodoList>>
-  readonly create: (name: string, publicKey: string) => Effect.Effect<CreatedTodoList>
-  readonly join: (inviteCode: string, publicKey: string) => Effect.Effect<TodoList, NotFound>
-  readonly exists: (storeId: StoreId) => Effect.Effect<boolean>
-  readonly isMember: (membership: Membership) => Effect.Effect<boolean>
-}>()("api/TodoLists") {
+export class TodoLists extends Context.Service<
+  TodoLists,
+  {
+    readonly listFor: (publicKey: string) => Effect.Effect<ReadonlyArray<TodoList>>
+    readonly create: (name: string, publicKey: string) => Effect.Effect<CreatedTodoList>
+    readonly join: (inviteCode: string, publicKey: string) => Effect.Effect<TodoList, NotFound>
+    readonly exists: (storeId: StoreId) => Effect.Effect<boolean>
+    readonly isMember: (membership: Membership) => Effect.Effect<boolean>
+  }
+>()("api/TodoLists") {
   static readonly layer = Layer.effect(
     TodoLists,
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient
 
       yield* sql`
@@ -91,7 +94,7 @@ export class TodoLists extends Context.Service<TodoLists, {
       })
 
       const create = (name: string, publicKey: string) =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const list: CreatedTodoList = {
             id: StoreId.make(crypto.randomUUID()),
             name,
@@ -103,7 +106,7 @@ export class TodoLists extends Context.Service<TodoLists, {
         }).pipe(sql.withTransaction, Effect.orDie)
 
       const join = (inviteCode: string, publicKey: string) =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const list = yield* findByInviteCode(inviteCode).pipe(Effect.orDie)
           if (Option.isNone(list)) return yield* new NotFound()
           yield* insertMembership({ storeId: list.value.id, publicKey }).pipe(Effect.orDie)

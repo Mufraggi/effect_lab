@@ -58,6 +58,7 @@ const permutations = <A>(xs: ReadonlyArray<A>): Array<Array<A>> =>
     ? [[...xs]]
     : xs.flatMap((x, i) => permutations([...xs.slice(0, i), ...xs.slice(i + 1)]).map((rest) => [x, ...rest]))
 
+// biome-ignore format: la table se lit comme de la prose, un tuple ["ce que ça prouve", () => { … }] par entrée. Le formatteur éclate chaque tuple sur cinq lignes et noie l'énoncé ; aucune option ne garde la forme compacte.
 const tests: ReadonlyArray<Test> = [
   ["rename vs rename: the newer title wins, whichever arrives first", () => {
     const inOrder = run([added, renamedOld, renamedNew])

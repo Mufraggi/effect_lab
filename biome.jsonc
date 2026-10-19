@@ -35,6 +35,21 @@
     "experimentalFullSupportEnabled": true
   },
 
+  // `biome ci` lance aussi les actions d'assist, pas seulement format + lint.
+  "assist": {
+    "actions": {
+      "source": {
+        // L'ordre des imports de ce repo est sémantique, pas alphabétique :
+        // `server.ts` va de la couche HTTP vers la plateforme puis le local, et
+        // `packages/shared/src/index.ts` réexporte dans l'ordre où l'article
+        // présente les modules (schemas → optics → api → todos). L'organiseur
+        // trie les deux — y compris les `export *` du barrel — sans rien y
+        // gagner en correction. 29 fichiers étaient concernés.
+        "organizeImports": "off"
+      }
+    }
+  },
+
   "linter": {
     "domains": {
       // S'auto-activerait sur la dépendance `vue`, mais elle ne vit que dans
