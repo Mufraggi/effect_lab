@@ -6,16 +6,7 @@
  * `pnpm --filter @effect_lab/shared test`.
  */
 import { Optic } from "effect"
-import {
-  _everyTag,
-  _everyTags,
-  _postById,
-  _publishedAt,
-  _titleById,
-  _title,
-  applyPatch,
-  flatten
-} from "./optics.js"
+import { _everyTag, _everyTags, _postById, _publishedAt, _titleById, _title, applyPatch, flatten } from "./optics.js"
 import type { Post } from "./schemas.js"
 
 // A local assert, so this package needs no Node type definitions.
@@ -53,6 +44,8 @@ const posts: ReadonlyArray<Post> = [
   }
 ]
 
+// La table garde sa forme compacte : une entrée `["nom", () => {...}]` par bloc.
+// prettier-ignore
 const tests: Array<[string, () => void]> = [
   ["refine filters: an id that matches nothing focuses nothing", () => {
     assert.deepEqual(Optic.getAll(_titleById(2))(posts), ["B"])

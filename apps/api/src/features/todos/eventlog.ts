@@ -13,7 +13,12 @@
  */
 import { Clock, Effect, Layer, Result } from "effect"
 import type { StoreId } from "effect/eventlog/EventLogMessage"
-import { EventJournal, EventLog, EventLogServerUnencrypted as Server, SqlEventLogServerUnencrypted } from "effect/eventlog"
+import {
+  EventJournal,
+  EventLog,
+  EventLogServerUnencrypted as Server,
+  SqlEventLogServerUnencrypted
+} from "effect/eventlog"
 import { RpcSerialization, RpcServer } from "effect/rpc"
 import { decodeTodoEntry, entryIdStamp, MaxClockSkewMillis, stampOf, TodoEvents, TodoSchema } from "@effect_lab/shared"
 import { TodoLists } from "../lists/repo.js"
@@ -27,23 +32,26 @@ const TodoHandlersServer = EventLog.group(TodoEvents, (h) =>
   h
     .handle("TodoAdded", ({ payload }) => Effect.log(`TodoAdded ${payload.id}`))
     .handle("TodoRenamed", ({ payload, conflicts }) =>
-      Effect.log(`TodoRenamed ${payload.id} "${payload.title}" — conflits : ${conflicts.length}`))
+      Effect.log(`TodoRenamed ${payload.id} "${payload.title}" — conflits : ${conflicts.length}`)
+    )
     .handle("TodoToggled", ({ payload, conflicts }) =>
-      Effect.log(`TodoToggled ${payload.id} done=${payload.done} — conflits : ${conflicts.length}`))
+      Effect.log(`TodoToggled ${payload.id} done=${payload.done} — conflits : ${conflicts.length}`)
+    )
     .handle("TodoDeleted", ({ payload }) => Effect.log(`TodoDeleted ${payload.id}`))
 )
 
 /** A store is a todo-list: unknown ids fail as "store not found". */
 const StoreMappingLive = Layer.effect(
   Server.StoreMapping,
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const lists = yield* TodoLists
     return {
       resolve: ({ publicKey, storeId }) =>
         Effect.flatMap(lists.exists(storeId), (exists) =>
           exists
             ? Effect.succeed(storeId)
-            : Effect.fail(new Server.EventLogServerStoreError({ reason: "NotFound", publicKey, storeId }))),
+            : Effect.fail(new Server.EventLogServerStoreError({ reason: "NotFound", publicKey, storeId }))
+        ),
       hasStore: ({ storeId }) => lists.exists(storeId)
     }
   })
@@ -62,12 +70,16 @@ const StoreMappingLive = Layer.effect(
  * in its journal, and its hybrid clock restarts from them. The batch goes
  * through once real time is within the tolerance of those stamps.
  */
-const authorizeClock = ({ publicKey, storeId, entries }: {
+const authorizeClock = ({
+  publicKey,
+  storeId,
+  entries
+}: {
   readonly publicKey: string
   readonly storeId: StoreId
   readonly entries: ReadonlyArray<EventJournal.Entry>
 }) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const now = yield* Clock.currentTimeMillis
     const refuse = (entry: EventJournal.Entry, reason: string) =>
       new Server.EventLogServerAuthError({
@@ -93,13 +105,14 @@ const authorizeClock = ({ publicKey, storeId, entries }: {
  */
 const AuthorizationLive = Layer.effect(
   Server.EventLogServerAuthorization,
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const lists = yield* TodoLists
     const authorizeMember = ({ publicKey, storeId }: { readonly publicKey: string; readonly storeId: StoreId }) =>
       Effect.flatMap(lists.isMember({ publicKey, storeId }), (member) =>
         member
           ? Effect.void
-          : Effect.fail(new Server.EventLogServerAuthError({ reason: "Forbidden", publicKey, storeId })))
+          : Effect.fail(new Server.EventLogServerAuthError({ reason: "Forbidden", publicKey, storeId }))
+      )
     return {
       authorizeIdentity: () => Effect.void,
       authorizeRead: authorizeMember,
@@ -113,11 +126,7 @@ const AuthorizationLive = Layer.effect(
  * speaks binary too.
  */
 export const EventLogLive = Server.layer(TodoSchema, TodoHandlersServer).pipe(
-  Layer.provide([
-    SqlEventLogServerUnencrypted.layerStorage(),
-    StoreMappingLive,
-    AuthorizationLive
-  ]),
+  Layer.provide([SqlEventLogServerUnencrypted.layerStorage(), StoreMappingLive, AuthorizationLive]),
   Layer.provide(RpcServer.layerProtocolWebsocket({ path: "/eventlog" })),
   Layer.provide(RpcSerialization.layerSchemaBinary())
 )

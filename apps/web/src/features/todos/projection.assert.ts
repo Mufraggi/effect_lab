@@ -29,6 +29,10 @@ const unchecked = at(5, { _tag: "TodoToggled", payload: { id, done: false } })
 const removed = at(6, { _tag: "TodoDeleted", payload: { id } })
 
 const hour = 3_600_000
+// `make` d'un brand Schema est une fonction autonome, pas une méthode : elle
+// n'accède pas à `this`, donc l'aliaser est sûr (les assertions ci-dessous
+// l'appellent détaché).
+// oxlint-disable-next-line typescript/unbound-method
 const stamp = StampMillis.make
 /** Alice's device runs an hour ahead: her entry id and her stamp say so. */
 const aliceAhead = at(2 + hour, { _tag: "TodoRenamed", payload: { id, title: "alice", at: stamp(2 + hour) } })
@@ -58,6 +62,8 @@ const permutations = <A>(xs: ReadonlyArray<A>): Array<Array<A>> =>
     ? [[...xs]]
     : xs.flatMap((x, i) => permutations([...xs.slice(0, i), ...xs.slice(i + 1)]).map((rest) => [x, ...rest]))
 
+// La table garde sa forme compacte : une entrée `["nom", () => {...}]` par bloc.
+// prettier-ignore
 const tests: ReadonlyArray<Test> = [
   ["rename vs rename: the newer title wins, whichever arrives first", () => {
     const inOrder = run([added, renamedOld, renamedNew])

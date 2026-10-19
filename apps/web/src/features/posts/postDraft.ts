@@ -1,13 +1,5 @@
 import { Optic } from "effect"
-import {
-  _authorName,
-  _body,
-  _tags,
-  _title,
-  _visibility,
-  type Post,
-  type PostPatch
-} from "@effect_lab/shared"
+import { _authorName, _body, _tags, _title, _visibility, type Post, type PostPatch } from "@effect_lab/shared"
 import { rebaseAll, rebaseField } from "../../shared/rebase.js"
 
 /**
@@ -20,7 +12,11 @@ import { rebaseAll, rebaseField } from "../../shared/rebase.js"
 export const _tagsAsText = _tags.compose(
   Optic.makeIso<ReadonlyArray<string>, string>(
     (tags) => tags.join(", "),
-    (text) => text.split(",").map((t) => t.trim()).filter((t) => t.length > 0)
+    (text) =>
+      text
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0)
   )
 )
 
@@ -66,9 +62,10 @@ export const rebaseDraft = rebaseAll<Post>(rebaseFields)
  * `author.name` sits under a partial `author`, and tags are compared as text
  * but sent as an array.
  */
-const patchField = <A>(optic: Optic.Lens<Post, A>, into: (draft: Post) => PostPatch) =>
-(draft: Post, from: Post): PostPatch | undefined =>
-  optic.get(draft) === optic.get(from) ? undefined : into(draft)
+const patchField =
+  <A>(optic: Optic.Lens<Post, A>, into: (draft: Post) => PostPatch) =>
+  (draft: Post, from: Post): PostPatch | undefined =>
+    optic.get(draft) === optic.get(from) ? undefined : into(draft)
 
 export const patchFields = [
   patchField(_title, (draft) => ({ title: _title.get(draft) })),

@@ -41,8 +41,7 @@ export class PostsApi extends HttpApiGroup.make("posts")
       success: Schema.Array(Post)
     })
   )
-  .prefix("/posts")
-{}
+  .prefix("/posts") {}
 
 /**
  * Todo-lists and who belongs to them. The caller names its own `publicKey`
@@ -67,7 +66,6 @@ export class ListsApi extends HttpApiGroup.make("lists")
       error: NotFoundError
     })
   )
-  .prefix("/lists")
-{}
+  .prefix("/lists") {}
 
 export class Api extends HttpApi.make("api").add(PostsApi).add(ListsApi) {}

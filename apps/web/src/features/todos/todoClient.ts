@@ -65,25 +65,25 @@ export const makeTodoClient = (user: TodoUser) => {
    * the atom re-runs and the previous scope closes — socket and all.
    */
   const connection = runtime.atom((get) =>
-    get(online)
-      ? Layer.build(RemoteLive).pipe(Effect.as<Connection>("online"))
-      : Effect.succeed<Connection>("offline")
+    get(online) ? Layer.build(RemoteLive).pipe(Effect.as<Connection>("online")) : Effect.succeed<Connection>("offline")
   )
 
   const todos = runtime.subscriptionRef(TodoState.use(Effect.succeed))
   const conflicts = runtime.subscriptionRef(ConflictLog.use(Effect.succeed))
 
   /** Every edit is stamped here, on the hybrid clock: callers never pass `at`. */
-  const write = runtime.fn(Effect.fnUntraced(function*(event: TodoEvent) {
-    const client = yield* EventLog.makeClient(TodoSchema)
-    const at = yield* HybridClock.use((clock) => clock.tick)
-    return yield* Match.valueTags(stampEvent(event, at), {
-      TodoAdded: ({ payload }) => client("TodoAdded", payload),
-      TodoRenamed: ({ payload }) => client("TodoRenamed", payload),
-      TodoToggled: ({ payload }) => client("TodoToggled", payload),
-      TodoDeleted: ({ payload }) => client("TodoDeleted", payload)
+  const write = runtime.fn(
+    Effect.fnUntraced(function* (event: TodoEvent) {
+      const client = yield* EventLog.makeClient(TodoSchema)
+      const at = yield* HybridClock.use((clock) => clock.tick)
+      return yield* Match.valueTags(stampEvent(event, at), {
+        TodoAdded: ({ payload }) => client("TodoAdded", payload),
+        TodoRenamed: ({ payload }) => client("TodoRenamed", payload),
+        TodoToggled: ({ payload }) => client("TodoToggled", payload),
+        TodoDeleted: ({ payload }) => client("TodoDeleted", payload)
+      })
     })
-  }))
+  )
 
   return { online, connection, todos, conflicts, write }
 }

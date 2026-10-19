@@ -1,0 +1,56 @@
+# Les deux images publiées, câblées ensemble. C'est le pendant déployable du
+# `docker-compose.yml` de développement, qui ne lance que Postgres.
+#
+#   OWNER=hugomufraggi docker compose -f docker-compose.prod.yml up -d
+#   # puis http://localhost:8080
+#
+# Pour construire localement au lieu de tirer du registre, décommenter les
+# lignes `build:`. Le contexte est bien la racine du monorepo.
+services:
+  api:
+    image: ghcr.io/${OWNER:?renseigner OWNER}/effect_lab-api:${TAG:-latest}
+    # build:
+    #   context: .
+    #   dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgres://effect_lab:effect_lab@postgres:5432/effect_lab
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    image: ghcr.io/${OWNER:?renseigner OWNER}/effect_lab-web:${TAG:-latest}
+    # build:
+    #   context: .
+    #   dockerfile: apps/web/Dockerfile
+    environment:
+      # Le nom du service, résolu par le DNS interne de Compose. nginx ne le
+      # résout qu'à la première requête, donc `web` démarre et sert le SPA
+      # même si `api` n'est pas encore prêt.
+      API_UPSTREAM: api:3001
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: effect_lab
+      POSTGRES_PASSWORD: effect_lab
+      POSTGRES_DB: effect_lab
+    # L'API ouvre sa connexion au démarrage : sans ce healthcheck, elle
+    # partirait avant que Postgres accepte les connexions.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U effect_lab -d effect_lab"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:

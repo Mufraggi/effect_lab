@@ -1,0 +1,98 @@
+# Pendant en production du proxy de `apps/web/vite.config.ts`. Les deux règles
+# doivent rester d'accord : le front appelle l'API sur `/api` (baseUrl de
+# `features/posts/posts.ts`) et ouvre son WebSocket sur `/eventlog`
+# (`features/todos/todoClient.ts`), toujours sur la même origine.
+#
+# Les variables en majuscules sont substituées au démarrage du conteneur par
+# l'entrypoint de `nginx:alpine` (envsubst). Les variables nginx (`$uri`,
+# `$http_upgrade`, …) n'existent pas dans l'environnement, donc il n'y touche
+# pas.
+
+server {
+  listen 80;
+  server_name _;
+
+  root /usr/share/nginx/html;
+  index index.html;
+
+  # Résolution DNS au moment de la requête, et non au démarrage.
+  #
+  # nginx résout les noms d'un `proxy_pass` littéral au chargement de la
+  # conf et **refuse de démarrer** si le nom ne résout pas. Le front se
+  # retrouverait alors à ne pas être servi du tout parce que l'API n'est pas
+  # encore là — la course classique au `docker compose up`. En passant par
+  # une variable, la résolution est différée : le SPA est servi quoi qu'il
+  # arrive, et seules les requêtes proxifiées échouent (502) tant que l'API
+  # est absente.
+  #
+  # `127.0.0.11` est le résolveur interne de Docker ; sous Kubernetes,
+  # pointer DNS_RESOLVER sur le service DNS du cluster.
+  resolver ${DNS_RESOLVER} valid=10s;
+  set $api_upstream ${API_UPSTREAM};
+
+  # Le bundle Vite porte un hash dans son nom : il est donc immuable. Seul
+  # `index.html` doit pouvoir changer sans que le navigateur garde l'ancien.
+  location /assets/ {
+    # Un seul en-tête : `expires` en émet un seul de son côté, et cumuler les
+    # deux directives enverrait deux `Cache-Control` concurrents.
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    try_files $uri =404;
+  }
+
+  # L'API. Le préfixe `/api` est retiré du chemin transmis — `/api/posts`
+  # arrive en `/posts`, et les groupes du serveur sont préfixés `/posts` et
+  # `/lists`. C'est la même réécriture que le proxy Vite en dev.
+  #
+  # Le `rewrite` est explicite parce qu'un `proxy_pass` **vers une variable**
+  # ne retire pas le préfixe de la `location`, contrairement à la forme
+  # littérale avec `/` final.
+  #
+  # La location est une regex, et non le préfixe `/api/`, pour couvrir `/api`
+  # nu autant que `/api/…` : avec `location /api/`, une requête sur `/api`
+  # exactement ne matchait pas, retombait sur le fallback SPA et renvoyait
+  # `index.html` en 200 au lieu d'atteindre l'API. Le proxy Vite, lui,
+  # réécrit les deux. Une regex ne matche pas non plus `/apiautre`, ce qu'un
+  # préfixe `/api` aurait laissé passer.
+  location ~ ^/api(/.*)?$ {
+    rewrite ^/api/?(.*)$ /$1 break;
+    proxy_pass http://$api_upstream;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+
+  # Le serveur de synchro EventLog. Pas de réécriture ici : la route du
+  # serveur est bien `/eventlog`, le chemin passe tel quel.
+  location /eventlog {
+    proxy_pass http://$api_upstream;
+    proxy_http_version 1.1;
+
+    # Sans ces deux en-têtes la négociation WebSocket échoue, et le client
+    # part en boucle de reconnexion.
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    # Une session de synchro reste ouverte sans trafic quand les deux clients
+    # sont au repos : le timeout par défaut (60 s) la couperait.
+    proxy_read_timeout 1h;
+    proxy_send_timeout 1h;
+  }
+
+  # `createWebHistory()` : une URL comme `/todos` n'existe pas sur le disque.
+  # Sans ce fallback, un rafraîchissement hors de `/` renverrait 404.
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
+
+  gzip on;
+  gzip_vary on;
+  gzip_min_length 1024;
+  gzip_types text/css text/javascript application/javascript application/json image/svg+xml;
+}

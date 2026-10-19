@@ -12,10 +12,9 @@ const bob = loadIdentity("bob")
     <header>
       <h1>Todos</h1>
       <p class="lead">
-        Deux clients EventLog, chacun avec sa propre clé. Créez une liste d'un
-        côté, rejoignez-la de l'autre avec son code d'invitation. Passez l'un
-        hors ligne, modifiez des deux côtés, puis reconnectez : le renommage
-        écrit en dernier gagne, et une todo supprimée le reste.
+        Deux clients EventLog, chacun avec sa propre clé. Créez une liste d'un côté, rejoignez-la de l'autre avec son
+        code d'invitation. Passez l'un hors ligne, modifiez des deux côtés, puis reconnectez : le renommage écrit en
+        dernier gagne, et une todo supprimée le reste.
       </p>
     </header>
 

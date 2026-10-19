@@ -79,12 +79,7 @@ const remove = (todo: Todo) => write({ _tag: "TodoDeleted", payload: { id: todo.
 
     <ul class="todos">
       <li v-for="todo in todos" :key="todo.id">
-        <input
-          type="checkbox"
-          :checked="todo.done"
-          aria-label="faite"
-          @change="toggle(todo, $event)"
-        />
+        <input type="checkbox" :checked="todo.done" aria-label="faite" @change="toggle(todo, $event)" />
         <input
           class="title"
           :class="{ done: todo.done }"

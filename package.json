@@ -6,14 +6,23 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "test": "turbo test",
-    "typecheck": "turbo typecheck"
+    "typecheck": "turbo typecheck",
+    "check": "vp check",
+    "lint": "vp lint",
+    "format": "vp fmt",
+    "format:check": "vp fmt --check"
   },
   "devDependencies": {
     "turbo": "^2.5.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "vite-plus": "1.3.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "@parcel/watcher", "msgpackr-extract"],
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "@parcel/watcher",
+      "msgpackr-extract"
+    ],
     "overrides": {
       "@effect/platform-node-shared": "4.0.2"
     }

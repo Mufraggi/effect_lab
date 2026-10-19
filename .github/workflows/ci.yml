@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Une seule série par branche : un nouveau push annule la précédente — mais
+# **pas** sur `main`, où l'annulation pourrait couper une publication d'image
+# déjà en vol et laisser le registre avec un tag à moitié poussé.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+# Lecture seule par défaut ; seul le job `images` élargit (packages: write).
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: format · lint · typecheck · build · test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # setup-vp installe vp, le Node de `.node-version`, le pnpm de
+      # `packageManager`, et lance `vp install`. Il remplace setup-node,
+      # pnpm/action-setup et le cache manuel du store.
+      # Version exacte volontaire : la doc Vite+ précise que le tag `v1`
+      # n'est plus mis à jour.
+      - uses: voidzero-dev/setup-vp@v1.21.2
+        with:
+          cache: true
+
+      # Format (oxfmt) + lint (oxlint) + types des `.ts` (tsgolint), en une passe.
+      - name: Format, lint et types
+        run: vp check
+
+      # tsgolint ne type-check pas les SFC `.vue`. Sans cette étape, les
+      # composants du front ne seraient vérifiés par personne — d'où le
+      # `vue-tsc` de `turbo typecheck`, qui reste la référence sur `apps/web`.
+      - name: Types des composants Vue
+        run: vp run typecheck
+
+      - name: Build
+        run: vp run build
+
+      - name: Tests
+        run: vp run test
+
+  images:
+    name: images ghcr.io (${{ matrix.app }})
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [api, web]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      # Sur une PR on build sans publier : le Dockerfile est validé, mais
+      # seul `main` écrit dans le registre.
+      - name: Connexion à ghcr.io
+        if: github.event_name == 'push'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tags et labels
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}-${{ matrix.app }}
+          tags: |
+            type=sha,format=long
+            type=ref,event=branch
+            type=ref,event=pr
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build et push
+        uses: docker/build-push-action@v7
+        with:
+          # Le contexte est la racine : les deux images ont besoin du
+          # lockfile, du pnpm-workspace.yaml et de `packages/shared`.
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Les deux bases publient arm64, et une image amd64 seule tournerait
+          # en émulation sur une machine Apple Silicon. Le coût est un temps
+          # de build doublé, payé uniquement sur `main` et les PR.
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}

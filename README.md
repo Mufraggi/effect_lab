@@ -91,13 +91,82 @@ Les optics feuilles vivent dans `packages/shared/src/optics.ts` et **nulle part 
 
 ## Scripts
 
-| Commande         | Description                                  |
-| ---------------- | -------------------------------------------- |
-| `pnpm dev`       | lance api + web en parallèle (turbo)         |
-| `pnpm build`     | build tous les packages/apps                 |
-| `pnpm typecheck` | vérifie les types (dont les `.vue`)          |
-| `pnpm test`      | assertions optics + tests HTTP in-memory     |
+| Commande             | Description                                       |
+| -------------------- | ------------------------------------------------- |
+| `pnpm dev`           | lance api + web en parallèle (turbo)              |
+| `pnpm build`         | build tous les packages/apps                      |
+| `pnpm typecheck`     | vérifie les types (dont les `.vue`)               |
+| `pnpm test`          | assertions optics + tests HTTP in-memory          |
+| `pnpm check`         | format + lint + types des `.ts` — ce que lance la CI |
+| `pnpm lint`          | lint seul (oxlint)                                   |
+| `pnpm format`        | reformate (oxfmt)                                    |
+| `pnpm format:check`  | vérifie le format sans écrire, sans lint ni types    |
 
 Les tests ne dépendent d'aucun runner : `packages/shared` assère le comportement des optics avec du Node nu, `apps/api` monte l'API en mémoire via `HttpApiTest` (pas de socket ouverte), `apps/web` assère la logique de rebase du brouillon — extraite des composants exprès pour être testable sans DOM.
 
-> Pas de linter ni de formatter configuré pour l'instant. La tâche `lint` a été retirée de `turbo.json` : elle existait sans qu'aucun package ne définisse de script, donc `pnpm lint` sortait en succès sans rien vérifier.
+## Lint, format et types
+
+Le repo passe par [Vite+](https://viteplus.dev) (`vp`, installé en
+devDependency) pour le lint et le format. `vp check` enchaîne oxfmt, oxlint et
+le type-check des `.ts` en une passe. Toute la configuration tient dans le
+bloc `fmt` / `lint` de `vite.config.ts` à la racine — Vite+ **ignore** les
+configs imbriquées, donc un bloc dans un package ne serait pas appliqué.
+
+Deux choix méritent leur explication :
+
+- **`vue-tsc` reste la référence sur `apps/web`.** Le type-check de `vp check`
+  passe par tsgolint, qui ne lit pas les SFC `.vue`. Sans la tâche
+  `turbo typecheck`, les composants ne seraient vérifiés par personne. La CI
+  lance donc les deux.
+- **Les tables d'assertions portent un `// prettier-ignore`.** Le formateur
+  éclate `["nom", () => {…}]` en quatre lignes, ce qui triple la hauteur des
+  tables `[optic, lecteur]` qui sont le propos de ce repo. L'ignore est posé
+  sur la déclaration entière : le reste du fichier est formaté normalement.
+  Sans lui, l'adoption du formateur réécrivait ~1900 lignes au lieu de ~420.
+
+Le markdown est exclu du formatage : sur les tableaux de `docs/research/`,
+l'alignement des cellules par padding produit des lignes de 400 colonnes.
+
+## CI et images Docker
+
+`.github/workflows/ci.yml`, sur chaque PR et chaque push sur `main` :
+
+1. `vp check` — format, lint, types des `.ts`
+2. `vp run typecheck` — `vue-tsc`, pour les `.vue`
+3. `vp run build` puis `vp run test`
+4. deux images Docker, construites puis poussées sur ghcr.io
+
+L'installation passe par l'action officielle `voidzero-dev/setup-vp`, qui
+apporte vp, le Node de `.node-version`, le pnpm de `packageManager` et le
+cache du store — elle remplace `setup-node` et `pnpm/action-setup`.
+
+| Image | Contenu |
+| --- | --- |
+| `ghcr.io/<owner>/effect_lab-api` | l'API Effect + le serveur de synchro EventLog, port 3001 |
+| `ghcr.io/<owner>/effect_lab-web` | le bundle Vite servi par nginx, port 80 |
+
+Les deux se construisent **depuis la racine du monorepo**, pas depuis leur
+dossier : elles ont besoin du lockfile et de `packages/shared`.
+
+```sh
+docker build -f apps/api/Dockerfile -t effect_lab-api .
+docker build -f apps/web/Dockerfile -t effect_lab-web .
+```
+
+L'image web reproduit le proxy de développement : `/api` est transmis à l'API
+sans son préfixe, et `/eventlog` tel quel, avec l'`Upgrade` WebSocket.
+L'upstream se règle à l'exécution — `-e API_UPSTREAM=mon-api:3001`. La
+résolution DNS est volontairement différée à la requête : nginx démarre et
+sert le SPA même quand l'API est absente, au lieu de refuser de démarrer.
+
+Les deux images câblées ensemble, avec Postgres :
+
+```sh
+OWNER=<ton-compte> docker compose -f docker-compose.prod.yml up -d
+# http://localhost:8080
+```
+
+`docker-compose.yml` (sans suffixe) reste le Postgres seul, pour le dev.
+
+> Sur une pull request les images sont construites mais **pas** publiées :
+> le Dockerfile est validé, et seul `main` écrit dans le registre.

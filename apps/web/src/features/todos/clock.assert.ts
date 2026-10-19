@@ -16,6 +16,8 @@ const runClock = <A>(effect: Effect.Effect<A, never, HybridClock>) => Effect.run
 const tick = HybridClock.use((clock) => clock.tick)
 const observe = (at: number) => HybridClock.use((clock) => clock.observe(StampMillis.make(at)))
 
+// La table garde sa forme compacte : une entrée `["nom", () => {...}]` par bloc.
+// prettier-ignore
 const tests: ReadonlyArray<Test> = [
   ["ticks follow the wall clock and never repeat", () => {
     const [a, b] = runClock(Effect.all([tick, tick]))

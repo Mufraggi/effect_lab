@@ -7,11 +7,7 @@ import { navigation } from "./router.js"
   <div class="shell">
     <nav>
       <span class="brand">effect_lab</span>
-      <RouterLink
-        v-for="route in navigation"
-        :key="String(route.name)"
-        :to="route.path"
-      >
+      <RouterLink v-for="route in navigation" :key="String(route.name)" :to="route.path">
         {{ route.meta?.title ?? route.name }}
       </RouterLink>
     </nav>

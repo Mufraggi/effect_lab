@@ -46,12 +46,7 @@ const save = async (patch: PostPatch) => {
       />
     </ul>
 
-    <PostForm
-      v-if="editingPost"
-      :post="editingPost"
-      @save="save"
-      @cancel="editing = null"
-    />
+    <PostForm v-if="editingPost" :post="editingPost" @save="save" @cancel="editing = null" />
   </section>
 </template>
 

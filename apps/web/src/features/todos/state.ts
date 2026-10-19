@@ -4,7 +4,7 @@ import { decodeTodoEntry, StampMillis, stampOf } from "@effect_lab/shared"
 import { foldTodoEvents, type JournalEvent, type Rejection, type TodoStateShape } from "./projection.js"
 
 /** The journal's events, decoded. Unknown tags are skipped. */
-const journalEvents = Effect.gen(function*() {
+const journalEvents = Effect.gen(function* () {
   const journal = yield* EventJournal.EventJournal
   const events: Array<JournalEvent> = []
   for (const entry of yield* journal.entries) {
@@ -29,9 +29,10 @@ export class TodoState extends Context.Service<TodoState, SubscriptionRef.Subscr
 }
 
 /** What this client decided to drop, and why. */
-export class ConflictLog extends Context.Service<ConflictLog, SubscriptionRef.SubscriptionRef<ReadonlyArray<Rejection>>>()(
-  "app/ConflictLog"
-) {
+export class ConflictLog extends Context.Service<
+  ConflictLog,
+  SubscriptionRef.SubscriptionRef<ReadonlyArray<Rejection>>
+>()("app/ConflictLog") {
   static readonly layer = Layer.effect(ConflictLog, SubscriptionRef.make<ReadonlyArray<Rejection>>([]))
 }
 
@@ -40,15 +41,18 @@ export class ConflictLog extends Context.Service<ConflictLog, SubscriptionRef.Su
  * clock, but never behind the latest stamp seen. It starts from the journal,
  * so a reload does not step back behind what was already written or received.
  */
-export class HybridClock extends Context.Service<HybridClock, {
-  /** A stamp for a new edit: later than the wall clock and than anything seen. */
-  readonly tick: Effect.Effect<StampMillis>
-  /** Records a stamp written here or received, so the next tick is past it. */
-  readonly observe: (at: StampMillis) => Effect.Effect<void>
-}>()("app/HybridClock") {
+export class HybridClock extends Context.Service<
+  HybridClock,
+  {
+    /** A stamp for a new edit: later than the wall clock and than anything seen. */
+    readonly tick: Effect.Effect<StampMillis>
+    /** Records a stamp written here or received, so the next tick is past it. */
+    readonly observe: (at: StampMillis) => Effect.Effect<void>
+  }
+>()("app/HybridClock") {
   static readonly layer = Layer.effect(
     HybridClock,
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const events = yield* journalEvents
       const last = yield* Ref.make(
         events.reduce((max, { event, entryId }) => Math.max(max, stampOf(event, entryId).at), 0)
@@ -58,7 +62,8 @@ export class HybridClock extends Context.Service<HybridClock, {
           Ref.modify(last, (seen) => {
             const at = StampMillis.make(Math.max(now, seen + 1))
             return [at, at]
-          })),
+          })
+        ),
         observe: (at) => Ref.update(last, (seen) => Math.max(seen, at))
       })
     })

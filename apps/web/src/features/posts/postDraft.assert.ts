@@ -25,6 +25,8 @@ const post: Post = {
 /** The form opened on `post`, so the draft and its seed are the same value. */
 const untouched = { edited: post, from: post }
 
+// La table garde sa forme compacte : une entrée `["nom", () => {...}]` par bloc.
+// prettier-ignore
 const tests: ReadonlyArray<Test> = [
   ["a field nobody touched takes the incoming value", () => {
     const next = { ...post, title: "FROM THE LIST" }

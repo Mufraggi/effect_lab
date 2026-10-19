@@ -10,5 +10,5 @@ const _city = Optic.id<User>().key("address").key("city")
 
 const moved = _city.replace("Nice", user)
 
-console.log(user.address.city ) // "Paris" (the original is intact)
+console.log(user.address.city) // "Paris" (the original is intact)
 console.log(moved.address.city) // "Nice"

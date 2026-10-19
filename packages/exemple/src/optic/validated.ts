@@ -43,15 +43,12 @@ const _validPort = _port.check(Schema.isBetween({ minimum: 1, maximum: 65535 }))
 const _flag = (name: string) => Optic.id<Config>().key("flags").at(name)
 
 /** On a traversal, the very same `check` behaves as a filter instead. */
-const _openPorts = Optic.id<ReadonlyArray<number>>().forEach((port) =>
-  port.check(Schema.isGreaterThan(0))
-)
+const _openPorts = Optic.id<ReadonlyArray<number>>().forEach((port) => port.check(Schema.isGreaterThan(0)))
 
 /** `refine` lets you word the expectation; `check` keeps the schema's own. */
-const _loopback = Optic.id<Config>().key("server").refine(
-  (server): server is Server => server.host === "localhost",
-  { expected: "a loopback server" }
-)
+const _loopback = Optic.id<Config>()
+  .key("server")
+  .refine((server): server is Server => server.host === "localhost", { expected: "a loopback server" })
 
 // The formatter is not optic-specific — it formats any `SchemaIssue.Issue`.
 const format = SchemaIssue.makeFormatterDefault()
@@ -68,6 +65,8 @@ const assertEqual = (actual: unknown, expected: unknown, note: string) => {
   }
 }
 
+// La table garde sa forme compacte : une entrée `["nom", () => {...}]` par bloc.
+// prettier-ignore
 const tests: Array<[string, () => void]> = [
   ["a satisfied check reads like any other optic", () => {
     assertEqual(Result.isSuccess(_validPort.getResult(config)), true, "8080 is a valid port")

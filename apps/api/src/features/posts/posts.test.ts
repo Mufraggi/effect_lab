@@ -14,16 +14,15 @@ import { Api } from "@effect_lab/shared"
 import { PostsHandlersNoDeps } from "./handlers.js"
 import { PostsRepo } from "./repo.js"
 
-const TestLayer = Layer.mergeAll(
-  PostsHandlersNoDeps.pipe(Layer.provide(PostsRepo.layer)),
-  HttpServer.layerServices
-)
+const TestLayer = Layer.mergeAll(PostsHandlersNoDeps.pipe(Layer.provide(PostsRepo.layer)), HttpServer.layerServices)
 
 const makeClient = HttpApiTest.groups(Api, ["posts"])
 
 type Client = Effect.Success<typeof makeClient>
 type Test = (client: Client) => Effect.Effect<void, unknown>
 
+// La table garde sa forme compacte : une entrée `["nom", () => {...}]` par bloc.
+// prettier-ignore
 const tests: Array<[string, Test]> = [
   ["GET /posts returns the seeded posts", (client) =>
     Effect.gen(function*() {
@@ -121,7 +120,7 @@ const tests: Array<[string, Test]> = [
 
 // Each test gets a freshly built layer, so the Ref never leaks between them.
 const runOne = (name: string, test: Test) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const client = yield* makeClient
     yield* test(client)
   }).pipe(
@@ -143,7 +142,7 @@ const runOne = (name: string, test: Test) =>
     })
   )
 
-const main = Effect.gen(function*() {
+const main = Effect.gen(function* () {
   const results: Array<boolean> = []
   for (const [name, test] of tests) {
     results.push(yield* runOne(name, test))

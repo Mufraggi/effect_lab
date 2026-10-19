@@ -19,9 +19,7 @@ const lists = useAtomValue(() => listsQuery(publicKey))
 const create = useMutation(() => createList)
 const join = useMutation(() => joinList)
 
-const available = computed<ReadonlyArray<TodoList>>(() =>
-  AsyncResult.isSuccess(lists.value) ? lists.value.value : []
-)
+const available = computed<ReadonlyArray<TodoList>>(() => (AsyncResult.isSuccess(lists.value) ? lists.value.value : []))
 
 /** The chosen list, or the first one until something is chosen. */
 const selected = ref<StoreId | null>(null)

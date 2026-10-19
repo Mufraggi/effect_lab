@@ -68,8 +68,7 @@ const _steps = Optic.id<Todo>().key("steps")
  */
 const _stepLists = _todos.forEach(() => _steps)
 
-const setDone = (done: boolean) => (steps: ReadonlyArray<Step>) =>
-  steps.map((step) => ({ ...step, done }))
+const setDone = (done: boolean) => (steps: ReadonlyArray<Step>) => steps.map((step) => ({ ...step, done }))
 
 /** The obvious form: one traversal over the lists, `map` inside. */
 const checkEverything = _stepLists.modifyAll(setDone(true))
@@ -117,9 +116,7 @@ const _everyStep = flatten(_todos, _steps)
 const checkEveryStep = _everyStep.modifyAll((step) => ({ ...step, done: true }))
 
 /** A filter in the path: a low-priority todo cannot be reached, by construction. */
-const _urgentStepLists = _todos.forEach((todo) =>
-  todo.refine((t): t is Todo => t.priority === "high").key("steps")
-)
+const _urgentStepLists = _todos.forEach((todo) => todo.refine((t): t is Todo => t.priority === "high").key("steps"))
 const checkUrgent = _urgentStepLists.modifyAll(setDone(true))
 
 // The hand-written equivalent of `checkUrgent`, for comparison:
@@ -144,6 +141,8 @@ const assertEqual = (actual: unknown, expected: unknown, note: string) => {
 
 const doneFlags = (b: Board) => b.todos.map((t) => t.steps.map((s) => s.done))
 
+// La table garde sa forme compacte : une entrée `["nom", () => {...}]` par bloc.
+// prettier-ignore
 const tests: Array<[string, () => void]> = [
   ["getAll on a two-level traversal yields the ARRAYS, not the elements", () => {
     const focused = Optic.getAll(_stepLists)(board)

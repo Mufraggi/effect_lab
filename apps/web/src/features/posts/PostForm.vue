@@ -45,15 +45,18 @@ const tags = opticField(draft, pristine, _tagsAsText)
  * A different id is a different edit, so it starts clean: no field ever carries
  * over from one post to another.
  */
-watch(() => props.post, (next, previous) => {
-  if (previous?.id !== next.id) {
-    draft.value = next
+watch(
+  () => props.post,
+  (next, previous) => {
+    if (previous?.id !== next.id) {
+      draft.value = next
+      base.value = next
+      return
+    }
+    draft.value = rebaseDraft(next, draft.value, base.value)
     base.value = next
-    return
   }
-  draft.value = rebaseDraft(next, draft.value, base.value)
-  base.value = next
-})
+)
 
 /**
  * `publishedAt` is derived from `visibility` by `applyPatch`, which drops the
