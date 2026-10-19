@@ -10,7 +10,7 @@ import { TodoLists } from "./repo.js"
 export const ListsHandlers = HttpApiBuilder.group(
   Api,
   "lists",
-  Effect.fn(function*(handlers) {
+  Effect.fn(function* (handlers) {
     const lists = yield* TodoLists
 
     return handlers.handleAll({

@@ -25,11 +25,10 @@ export type Rebase<S> = (incoming: S, edited: S, from: S) => S
  * focus, compose an Iso down to something comparable first (see `_tagsAsText`
  * in `features/posts/postDraft.ts`).
  */
-export const rebaseField = <S, A>(optic: Optic.Lens<S, A>): Rebase<S> =>
-(incoming, edited, from) =>
-  optic.get(edited) === optic.get(from)
-    ? incoming
-    : optic.replace(optic.get(edited), incoming)
+export const rebaseField =
+  <S, A>(optic: Optic.Lens<S, A>): Rebase<S> =>
+  (incoming, edited, from) =>
+    optic.get(edited) === optic.get(from) ? incoming : optic.replace(optic.get(edited), incoming)
 
 /**
  * Fold a list of field rules into a single rebase.
@@ -38,5 +37,7 @@ export const rebaseField = <S, A>(optic: Optic.Lens<S, A>): Rebase<S> =>
  * accumulator, so the fields stay independent: a decision taken on one field
  * can never be read by the next.
  */
-export const rebaseAll = <S>(fields: ReadonlyArray<Rebase<S>>): Rebase<S> =>
-(incoming, edited, from) => fields.reduce((acc, rebase) => rebase(acc, edited, from), incoming)
+export const rebaseAll =
+  <S>(fields: ReadonlyArray<Rebase<S>>): Rebase<S> =>
+  (incoming, edited, from) =>
+    fields.reduce((acc, rebase) => rebase(acc, edited, from), incoming)

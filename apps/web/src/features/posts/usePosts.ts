@@ -3,13 +3,7 @@ import { Cause } from "effect"
 import { AsyncResult } from "effect/reactivity"
 import { useAtomValue } from "@effect/atom-vue"
 import type { Post, PostPatch } from "@effect_lab/shared"
-import {
-  POSTS_KEY,
-  optimisticPosts,
-  patchPost,
-  retagPosts,
-  updateTitle
-} from "./posts.js"
+import { POSTS_KEY, optimisticPosts, patchPost, retagPosts, updateTitle } from "./posts.js"
 import { useMutation } from "../../shared/useMutation.js"
 
 export interface UsePosts {
@@ -36,21 +30,15 @@ export const usePosts = (): UsePosts => {
   // is already the one to display — that is the whole point of optimistic UI.
   const loading = computed(() => AsyncResult.isInitial(result.value))
 
-  const posts = computed<ReadonlyArray<Post>>(() =>
-    AsyncResult.isSuccess(result.value) ? result.value.value : []
-  )
+  const posts = computed<ReadonlyArray<Post>>(() => (AsyncResult.isSuccess(result.value) ? result.value.value : []))
 
-  const readError = computed(() =>
-    AsyncResult.isFailure(result.value) ? Cause.pretty(result.value.cause) : null
-  )
+  const readError = computed(() => (AsyncResult.isFailure(result.value) ? Cause.pretty(result.value.cause) : null))
 
   const title = useMutation(() => updateTitle)
   const patch = useMutation(() => patchPost)
   const tags = useMutation(() => retagPosts)
 
-  const writeError = computed(() =>
-    title.error.value ?? patch.error.value ?? tags.error.value
-  )
+  const writeError = computed(() => title.error.value ?? patch.error.value ?? tags.error.value)
 
   return {
     posts,

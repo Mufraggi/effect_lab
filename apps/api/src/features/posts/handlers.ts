@@ -16,7 +16,7 @@ import { PostsRepo } from "./repo.js"
 export const PostsHandlersNoDeps = HttpApiBuilder.group(
   Api,
   "posts",
-  Effect.fn(function*(handlers) {
+  Effect.fn(function* (handlers) {
     const repo = yield* PostsRepo
 
     return handlers.handleAll({
@@ -29,6 +29,4 @@ export const PostsHandlersNoDeps = HttpApiBuilder.group(
 )
 
 /** The handlers with their store provided. Swap the layer in tests. */
-export const PostsHandlers = PostsHandlersNoDeps.pipe(
-  Layer.provide(PostsRepo.layer)
-)
+export const PostsHandlers = PostsHandlersNoDeps.pipe(Layer.provide(PostsRepo.layer))

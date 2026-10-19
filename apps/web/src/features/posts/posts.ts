@@ -33,8 +33,14 @@ const optimisticPosts = Atom.optimistic(postsQuery)
  * hand this is a `map` with an index comparison and two levels of spread.
  */
 export const updateTitle = Atom.optimisticFn(optimisticPosts, {
-  reducer: (current, request: { readonly params: { readonly id: number }; readonly payload: { readonly title: string } }) =>
-    AsyncResult.map(current, _titleById(request.params.id).modifyAll(() => request.payload.title)),
+  reducer: (
+    current,
+    request: { readonly params: { readonly id: number }; readonly payload: { readonly title: string } }
+  ) =>
+    AsyncResult.map(
+      current,
+      _titleById(request.params.id).modifyAll(() => request.payload.title)
+    ),
   fn: PostsHttp.mutation("posts", "updatePost")
 })
 

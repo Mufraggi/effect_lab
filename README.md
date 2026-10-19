@@ -38,6 +38,20 @@ pnpm dev
 - API : http://localhost:3001
 - Serveur EventLog (WebSocket) : ws://localhost:3001/eventlog, sur le même serveur que l'API, proxifié par Vite sous `/eventlog`
 
+### En conteneurs
+
+La CI publie deux images sur ghcr.io à chaque merge sur `main`. Pour monter la
+stack complète — front, API et Postgres :
+
+```sh
+docker compose -f docker-compose.prod.yml up    # front sur http://localhost:8080
+```
+
+Le front n'a aucune variable de build : l'URL d'API est le relatif `/api` et
+l'URL WebSocket est dérivée de `location.host`. C'est donc nginx qui proxifie
+`/api` et `/eventlog` vers l'API, en reprenant exactement ce que fait le proxy
+de `apps/web/vite.config.ts` en développement.
+
 ## EventLog : la todo-list hors ligne
 
 La page `/todos` fait tourner deux clients EventLog complets, Alice et Bob : chacun a son identité, son journal IndexedDB et son WebSocket. Le bouton « Passer hors ligne » ferme le scope qui tient la connexion, et la reconnexion envoie ce qui a été écrit entre-temps.
@@ -97,7 +111,22 @@ Les optics feuilles vivent dans `packages/shared/src/optics.ts` et **nulle part 
 | `pnpm build`     | build tous les packages/apps                 |
 | `pnpm typecheck` | vérifie les types (dont les `.vue`)          |
 | `pnpm test`      | assertions optics + tests HTTP in-memory     |
+| `pnpm lint`      | lint Biome                                   |
+| `pnpm format`    | formate tout le workspace                    |
+| `pnpm check`     | lint + format, corrections appliquées        |
 
 Les tests ne dépendent d'aucun runner : `packages/shared` assère le comportement des optics avec du Node nu, `apps/api` monte l'API en mémoire via `HttpApiTest` (pas de socket ouverte), `apps/web` assère la logique de rebase du brouillon — extraite des composants exprès pour être testable sans DOM.
 
-> Pas de linter ni de formatter configuré pour l'instant. La tâche `lint` a été retirée de `turbo.json` : elle existait sans qu'aucun package ne définisse de script, donc `pnpm lint` sortait en succès sans rien vérifier.
+## Lint, format et CI
+
+Le lint et le format passent par [Biome](https://biomejs.dev), un seul binaire configuré à la racine (`biome.jsonc`). Il n'y a **pas** de tâche `lint` dans `turbo.json` : Biome parcourt le workspace lui-même, et la tâche recréerait le no-op qui avait justifié son retrait (elle existait sans qu'aucun package ne définisse de script, donc `pnpm lint` sortait en succès sans rien vérifier).
+
+La version de Biome est épinglée **exacte**, sans `^` : la sortie du formatteur peut changer en minor, et un caret rendrait la CI rouge sur une PR sans rapport.
+
+Trois points de la config méritent leur explication, qui est dans `biome.jsonc` :
+
+- `useIterableCallbackReturn` est désactivée. Elle reconnaît `forEach` par son nom, or `Optic.forEach` n'est pas `Array#forEach` — son callback *doit* retourner un optic, ce que ce repo passe son temps à montrer.
+- `organizeImports` est désactivée. L'ordre des imports est sémantique ici, et l'organiseur trie jusqu'aux `export *` du barrel de `packages/shared`.
+- Les tables de tests portent un `// biome-ignore format` : le formatteur éclate chaque `["ce que ça prouve", () => { … }]` sur cinq lignes et noie l'énoncé.
+
+La CI (`.github/workflows/ci.yml`) joue `pnpm biome ci .`, puis `build`, `typecheck` et `test` — dans cet ordre, parce que les packages exposent leurs types via leur `dist` et que `@effect_lab/shared` ne se résout pas avant le build sur un clone neuf. Sur un merge dans `main`, elle publie en plus `ghcr.io/mufraggi/effect_lab-api` et `-web` (tags `latest` et `sha-<commit>`). Sur une PR les images sont construites sans être publiées, ce qui valide les Dockerfiles sans écrire dans le registre.

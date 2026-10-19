@@ -14,7 +14,7 @@ const tagTo = ref("effect-4")
     <input v-model="tagFrom" aria-label="tag source" />
     <span>→</span>
     <input v-model="tagTo" aria-label="tag cible" />
-    <button @click="emit('retag', tagFrom, tagTo)">Renommer</button>
+    <button type="button" @click="emit('retag', tagFrom, tagTo)">Renommer</button>
   </section>
 </template>
 

@@ -6,16 +6,7 @@
  * `pnpm --filter @effect_lab/shared test`.
  */
 import { Optic } from "effect"
-import {
-  _everyTag,
-  _everyTags,
-  _postById,
-  _publishedAt,
-  _titleById,
-  _title,
-  applyPatch,
-  flatten
-} from "./optics.js"
+import { _everyTag, _everyTags, _postById, _publishedAt, _titleById, _title, applyPatch, flatten } from "./optics.js"
 import type { Post } from "./schemas.js"
 
 // A local assert, so this package needs no Node type definitions.
@@ -53,6 +44,7 @@ const posts: ReadonlyArray<Post> = [
   }
 ]
 
+// biome-ignore format: la table se lit comme de la prose, un tuple ["ce que ça prouve", () => { … }] par entrée. Le formatteur éclate chaque tuple sur cinq lignes et noie l'énoncé ; aucune option ne garde la forme compacte.
 const tests: Array<[string, () => void]> = [
   ["refine filters: an id that matches nothing focuses nothing", () => {
     assert.deepEqual(Optic.getAll(_titleById(2))(posts), ["B"])
@@ -109,7 +101,7 @@ const tests: Array<[string, () => void]> = [
 
   ["an empty collection is handled, and no slot is invented", () => {
     assert.deepEqual(Optic.getAll(_everyTag)([]), [])
-    assert.deepEqual(_everyTag.modifyAll((tag) => tag + "!")([]), [])
+    assert.deepEqual(_everyTag.modifyAll((tag) => `${tag}!`)([]), [])
   }],
 
   ["flatten obeys the lens laws for a length-preserving write", () => {

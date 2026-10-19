@@ -25,11 +25,7 @@ export interface OpticField<A> {
  * array or an object focus, compose an Iso down to a comparable value (as
  * `PostForm` does for tags) rather than passing the collection optic directly.
  */
-export const opticField = <S, A>(
-  state: Ref<S>,
-  pristine: () => S,
-  optic: Optic.Lens<S, A>
-): OpticField<A> => ({
+export const opticField = <S, A>(state: Ref<S>, pristine: () => S, optic: Optic.Lens<S, A>): OpticField<A> => ({
   model: computed({
     get: () => optic.get(state.value),
     set: (next: A) => {

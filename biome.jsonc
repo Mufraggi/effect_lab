@@ -1,0 +1,81 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+
+  // Biome lit .gitignore : dist, .turbo, coverage et .env sont déjà couverts.
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+
+  "files": {
+    // pnpm-lock.yaml n'est pas gitignoré, lui. Les dossiers s'excluent sans
+    // `/**` : Biome coupe alors la descente au lieu de filtrer fichier par
+    // fichier (cf. la règle useBiomeIgnoreFolder, qui le signale).
+    "includes": ["**", "!**/dist", "!**/.turbo", "!pnpm-lock.yaml"]
+  },
+
+  "formatter": {
+    "indentStyle": "space", // le défaut Biome est "tab" ; le repo est en 2 espaces
+    "indentWidth": 2,
+    "lineWidth": 120
+  },
+
+  "javascript": {
+    "formatter": {
+      "semicolons": "asNeeded", // style Effect : pas de point-virgule
+      "trailingCommas": "none",
+      "quoteStyle": "double"
+    }
+  },
+
+  // Sans ce drapeau le `<script>` des SFC n'est qu'à moitié analysé, et il
+  // faudrait éteindre useConst / useImportType / noUnusedVariables /
+  // noUnusedImports pour éviter les faux positifs — sur les `.ts` aussi.
+  //
+  // Le formatteur HTML reste désactivé (son défaut) : il est expérimental, et
+  // on ne lui confie pas la réécriture des `<template>`.
+  "html": {
+    "experimentalFullSupportEnabled": true
+  },
+
+  // `biome ci` lance aussi les actions d'assist, pas seulement format + lint.
+  "assist": {
+    "actions": {
+      "source": {
+        // L'ordre des imports de ce repo est sémantique, pas alphabétique :
+        // `server.ts` va de la couche HTTP vers la plateforme puis le local, et
+        // `packages/shared/src/index.ts` réexporte dans l'ordre où l'article
+        // présente les modules (schemas → optics → api → todos). L'organiseur
+        // trie les deux — y compris les `export *` du barrel — sans rien y
+        // gagner en correction. 29 fichiers étaient concernés.
+        "organizeImports": "off"
+      }
+    }
+  },
+
+  "linter": {
+    "domains": {
+      // S'auto-activerait sur la dépendance `vue`, mais elle ne vit que dans
+      // apps/web : on la déclare pour que ce soit vrai depuis la racine.
+      "vue": "recommended"
+    },
+    "rules": {
+      "suspicious": {
+        // La règle reconnaît `forEach` par son **nom** et exige que le callback
+        // ne retourne rien. Or `Optic.forEach` n'est pas `Array#forEach` : c'est
+        // le combinateur de traversal d'Effect, et son callback doit retourner
+        // un optic — c'est toute la mécanique que ce repo démontre. Chaque
+        // signalement est donc un faux positif, par construction.
+        "useIterableCallbackReturn": "off"
+      }
+    }
+  },
+
+  "overrides": [
+    {
+      // Les assertions indexent des fixtures littérales déclarées deux lignes
+      // plus haut (`posts[0]!`). Le `!` y dit « ce tableau a bien deux
+      // éléments », ce que le fichier montre ; la règle reste active partout
+      // ailleurs.
+      "includes": ["**/*.assert.ts", "**/*.test.ts"],
+      "linter": { "rules": { "style": { "noNonNullAssertion": "off" } } }
+    }
+  ]
+}

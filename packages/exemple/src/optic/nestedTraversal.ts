@@ -68,8 +68,7 @@ const _steps = Optic.id<Todo>().key("steps")
  */
 const _stepLists = _todos.forEach(() => _steps)
 
-const setDone = (done: boolean) => (steps: ReadonlyArray<Step>) =>
-  steps.map((step) => ({ ...step, done }))
+const setDone = (done: boolean) => (steps: ReadonlyArray<Step>) => steps.map((step) => ({ ...step, done }))
 
 /** The obvious form: one traversal over the lists, `map` inside. */
 const checkEverything = _stepLists.modifyAll(setDone(true))
@@ -117,9 +116,7 @@ const _everyStep = flatten(_todos, _steps)
 const checkEveryStep = _everyStep.modifyAll((step) => ({ ...step, done: true }))
 
 /** A filter in the path: a low-priority todo cannot be reached, by construction. */
-const _urgentStepLists = _todos.forEach((todo) =>
-  todo.refine((t): t is Todo => t.priority === "high").key("steps")
-)
+const _urgentStepLists = _todos.forEach((todo) => todo.refine((t): t is Todo => t.priority === "high").key("steps"))
 const checkUrgent = _urgentStepLists.modifyAll(setDone(true))
 
 // The hand-written equivalent of `checkUrgent`, for comparison:
@@ -144,6 +141,7 @@ const assertEqual = (actual: unknown, expected: unknown, note: string) => {
 
 const doneFlags = (b: Board) => b.todos.map((t) => t.steps.map((s) => s.done))
 
+// biome-ignore format: la table se lit comme de la prose, un tuple ["ce que ça prouve", () => { … }] par entrée. Le formatteur éclate chaque tuple sur cinq lignes et noie l'énoncé ; aucune option ne garde la forme compacte.
 const tests: Array<[string, () => void]> = [
   ["getAll on a two-level traversal yields the ARRAYS, not the elements", () => {
     const focused = Optic.getAll(_stepLists)(board)

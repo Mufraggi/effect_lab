@@ -15,12 +15,12 @@
  *     because `TodoToggled` carries the target value rather than a flip.
  */
 import { Effect, Result, SubscriptionRef } from "effect"
-import { EventJournal, EventLog } from "effect/eventlog"
+import { type EventJournal, EventLog } from "effect/eventlog"
 import { stampOf, type TodoEvent, TodoEvents } from "@effect_lab/shared"
 import { applyTodoEvent } from "./projection.js"
 import { ConflictLog, HybridClock, TodoState } from "./state.js"
 
-const apply = Effect.fnUntraced(function*(event: TodoEvent, entry: EventJournal.Entry) {
+const apply = Effect.fnUntraced(function* (event: TodoEvent, entry: EventJournal.Entry) {
   yield* HybridClock.use((clock) => clock.observe(stampOf(event, entry.id).at))
   const state = yield* TodoState
   const result = yield* SubscriptionRef.modify(state, (s) => {

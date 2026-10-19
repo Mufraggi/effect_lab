@@ -24,7 +24,7 @@ export const MaxClockSkewMillis = 60_000
  * decodes entries for its own handlers. Unknown tags decode to `undefined`:
  * a newer client may write events this one does not know.
  */
-export const decodeTodoEntry = Effect.fnUntraced(function*(entry: EventJournal.Entry) {
+export const decodeTodoEntry = Effect.fnUntraced(function* (entry: EventJournal.Entry) {
   const event = TodoEvents.events[entry.event]
   if (event === undefined) return undefined
   const payload = yield* Schema.decodeUnknownEffect(event.payloadSchemaBinary)(entry.payload)

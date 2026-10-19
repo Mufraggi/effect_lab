@@ -1,0 +1,57 @@
+# Les images publiées par la CI, telles qu'elles tournent ensemble.
+#
+#   docker compose -f docker-compose.prod.yml up
+#   OWNER=mufraggi TAG=sha-<40 hex> docker compose -f docker-compose.prod.yml up
+#
+# Pour vérifier des images construites en local, les retagger d'abord :
+#   docker build -f apps/api/Dockerfile -t ghcr.io/local/effect_lab-api:dev .
+#   docker build -f apps/web/Dockerfile -t ghcr.io/local/effect_lab-web:dev .
+#   OWNER=local TAG=dev docker compose -f docker-compose.prod.yml up
+#
+# `docker-compose.yml` reste le Postgres de développement, pour `pnpm dev`.
+#
+# Le nom de projet est explicite, et il le faut : sans lui, Compose le déduit
+# du dossier (`effect_lab`) pour les deux fichiers. Les conteneurs
+# s'écraseraient, et surtout les deux volumes `pgdata` n'en feraient qu'un —
+# monter cette stack réécrirait le Postgres de développement.
+name: effect_lab_prod
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: effect_lab
+      POSTGRES_PASSWORD: effect_lab
+      POSTGRES_DB: effect_lab
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # L'API échoue au démarrage si la base n'accepte pas encore les connexions :
+    # `depends_on` seul ne suffit pas, il attend le conteneur, pas Postgres.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U effect_lab -d effect_lab"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Une seule instance, et ce n'est pas un oubli : le serveur EventLog
+  # (`apps/api/src/features/todos/eventlog.ts`) pousse aux abonnés depuis la
+  # mémoire du process. Deux répliques ne se verraient pas l'une l'autre.
+  api:
+    image: ghcr.io/${OWNER:-mufraggi}/effect_lab-api:${TAG:-latest}
+    environment:
+      DATABASE_URL: postgres://effect_lab:effect_lab@postgres:5432/effect_lab
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    image: ghcr.io/${OWNER:-mufraggi}/effect_lab-web:${TAG:-latest}
+    environment:
+      API_UPSTREAM: api:3001
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

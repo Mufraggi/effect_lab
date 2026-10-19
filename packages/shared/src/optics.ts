@@ -32,15 +32,13 @@ export const _publishedAt = Optic.id<Post>().key("meta").optionalKey("publishedA
 // cannot put a spread in an array. Adding a patchable field is one line.
 // ---------------------------------------------------------------------------
 
-const patchable = <A>(
-  optic: Optic.Lens<Post, A>,
-  read: (patch: PostPatch) => A | undefined
-) =>
-(patch: PostPatch): ((post: Post) => Post) | undefined => {
-  const value = read(patch)
-  // `modify` returns `(post: Post) => Post`, which is exactly the edit we want.
-  return value === undefined ? undefined : optic.modify(() => value)
-}
+const patchable =
+  <A>(optic: Optic.Lens<Post, A>, read: (patch: PostPatch) => A | undefined) =>
+  (patch: PostPatch): ((post: Post) => Post) | undefined => {
+    const value = read(patch)
+    // `modify` returns `(post: Post) => Post`, which is exactly the edit we want.
+    return value === undefined ? undefined : optic.modify(() => value)
+  }
 
 export const patchFields = [
   patchable(_title, (p) => p.title),
@@ -89,8 +87,7 @@ export const _posts = Optic.id<ReadonlyArray<Post>>()
  * Focus the post carrying this id — zero or one element. `refine` narrows a
  * traversal, so no index plumbing is needed: the id *is* the path.
  */
-export const _postById = (id: number) =>
-  _posts.forEach((post) => post.refine((p): p is Post => p.id === id))
+export const _postById = (id: number) => _posts.forEach((post) => post.refine((p): p is Post => p.id === id))
 
 /** The same leaf optic, now addressed by id inside the collection. */
 export const _titleById = (id: number) =>
