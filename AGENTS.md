@@ -45,6 +45,15 @@ un type-check lancé avant le build ne résout pas `@effect_lab/shared` et sort
 une centaine de TS2339. C'est invisible en local, où `dist/` traîne — donc à
 vérifier dans un clone vierge, pas dans le dossier de travail.
 
+Le front a sa propre version du même piège, d'où son `build` qui lance
+`vite build` **avant** `vue-tsc` et non l'inverse : le plugin Vite de Nuxt UI
+écrit `auto-imports.d.ts` et `components.d.ts` pendant le build, et sans eux les
+composants `U*` des templates ne sont pas typés. Un `pnpm typecheck` seul sur un
+clone vierge ne les type-checke donc pas — la CI lance `pnpm build` avant
+`pnpm typecheck`, dans cet ordre, pour cette raison. Contrepartie assumée : une
+erreur de types laisse désormais un `dist/` construit. Le script sort quand même
+non-zéro, donc la CI échoue et l'image Docker ne se construit pas.
+
 # Images Docker
 
 Le contexte de build des deux Dockerfiles est la **racine du monorepo**, pas

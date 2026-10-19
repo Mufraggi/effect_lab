@@ -1,57 +1,36 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from "vue-router"
+import { computed } from "vue"
+import { RouterView } from "vue-router"
 import { navigation } from "./router.js"
+
+/**
+ * Le menu est dérivé des routes, pas écrit en double : ajouter une slice sous
+ * `features/` et son entrée dans `router.ts` la fait apparaître ici.
+ *
+ * Le plugin détecte `vue-router` et rend chaque `to` en `RouterLink`, état actif
+ * compris — ce que faisaient les sélecteurs `.router-link-active` à la main.
+ */
+const items = computed(() =>
+  navigation.map((route) => ({ label: String(route.meta?.title ?? route.name), to: route.path }))
+)
 </script>
 
 <template>
-  <div class="shell">
-    <nav>
-      <span class="brand">effect_lab</span>
-      <RouterLink
-        v-for="route in navigation"
-        :key="String(route.name)"
-        :to="route.path"
-      >
-        {{ route.meta?.title ?? route.name }}
-      </RouterLink>
-    </nav>
+  <!-- `UApp` porte le contexte des Toast, Tooltip et overlays programmatiques. -->
+  <UApp>
+    <!-- `toggle: false` : deux liens tiennent dans l'en-tête à toutes les
+         largeurs, le menu burger n'aurait rien à ouvrir. -->
+    <UHeader title="effect_lab" :toggle="false">
+      <template #right>
+        <UNavigationMenu :items="items" />
+        <UColorModeButton />
+      </template>
+    </UHeader>
 
-    <main>
-      <RouterView />
-    </main>
-  </div>
+    <UMain>
+      <UContainer class="py-8">
+        <RouterView />
+      </UContainer>
+    </UMain>
+  </UApp>
 </template>
-
-<style scoped>
-.shell {
-  font-family: system-ui, sans-serif;
-  max-width: 44rem;
-  margin: 2rem auto;
-  padding: 0 1rem;
-  display: grid;
-  gap: 1.5rem;
-}
-nav {
-  display: flex;
-  gap: 1rem;
-  align-items: baseline;
-  border-bottom: 1px solid #e3e3e3;
-  padding-bottom: 0.75rem;
-}
-.brand {
-  font-weight: 600;
-  margin-right: auto;
-}
-nav a {
-  color: #555;
-  text-decoration: none;
-  font-size: 0.9rem;
-}
-nav a:hover {
-  color: #000;
-}
-nav a.router-link-active {
-  color: #000;
-  font-weight: 600;
-}
-</style>

@@ -8,40 +8,19 @@ const bob = loadIdentity("bob")
 </script>
 
 <template>
-  <section class="page">
-    <header>
-      <h1>Todos</h1>
-      <p class="lead">
+  <section class="grid gap-6">
+    <UPageHeader title="Todos">
+      <template #description>
         Deux clients EventLog, chacun avec sa propre clé. Créez une liste d'un
         côté, rejoignez-la de l'autre avec son code d'invitation. Passez l'un
         hors ligne, modifiez des deux côtés, puis reconnectez : le renommage
         écrit en dernier gagne, et une todo supprimée le reste.
-      </p>
-    </header>
+      </template>
+    </UPageHeader>
 
-    <div class="panels">
+    <div class="grid gap-4 sm:grid-cols-2">
       <TodoPanel name="Alice" db-prefix="todos-alice" :identity="alice" />
       <TodoPanel name="Bob" db-prefix="todos-bob" :identity="bob" />
     </div>
   </section>
 </template>
-
-<style scoped>
-.page {
-  display: grid;
-  gap: 1.5rem;
-}
-h1 {
-  margin: 0;
-}
-.lead {
-  color: #555;
-  margin: 0.25rem 0 0;
-  font-size: 0.9rem;
-}
-.panels {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
-  gap: 1rem;
-}
-</style>

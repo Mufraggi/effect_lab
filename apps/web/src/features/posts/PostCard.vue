@@ -6,50 +6,36 @@ const emit = defineEmits<{ editTitle: [title: string]; edit: [] }>()
 </script>
 
 <template>
-  <li class="card">
-    <input
-      :value="post.title"
+  <!-- `as="li"` : le parent est une `<ul>`, la carte garde son rôle d'item. -->
+  <UCard as="li">
+    <!-- `post.title` est une prop, donc `:model-value` + `@change` et pas de
+         `v-model` : la valeur revient par l'event, jamais par mutation. -->
+    <!-- `ghost` : le titre se lit comme un titre au repos, et se révèle
+         éditable au survol et au focus. -->
+    <UInput
+      :model-value="post.title"
+      variant="ghost"
       aria-label="titre"
+      class="w-full"
+      :ui="{ base: 'text-base font-medium' }"
       @change="emit('editTitle', ($event.target as HTMLInputElement).value)"
     />
-    <p class="body">{{ post.body }}</p>
-    <p class="meta">
-      par {{ post.author.name }}
-      · <span :class="post.meta.visibility">{{ post.meta.visibility }}</span>
-      · <span v-for="tag in post.tags" :key="tag" class="tag">{{ tag }}</span>
-    </p>
-    <button type="button" @click="emit('edit')">Éditer</button>
-  </li>
-</template>
+    <p class="my-2">{{ post.body }}</p>
+    <div class="flex flex-wrap items-center gap-1.5 text-sm text-muted">
+      <span>par {{ post.author.name }}</span>
+      <UBadge
+        variant="subtle"
+        :color="post.meta.visibility === 'public' ? 'success' : 'warning'"
+      >
+        {{ post.meta.visibility }}
+      </UBadge>
+      <UBadge v-for="tag in post.tags" :key="tag" color="neutral" variant="subtle">{{ tag }}</UBadge>
+    </div>
 
-<style scoped>
-.card {
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 0.75rem;
-}
-.card input {
-  width: 100%;
-  font-size: 1rem;
-}
-.body {
-  margin: 0.4rem 0;
-}
-.meta {
-  font-size: 0.8rem;
-  color: #555;
-  margin: 0 0 0.5rem;
-}
-.tag {
-  background: #eef;
-  border-radius: 3px;
-  padding: 0 0.3rem;
-  margin-right: 0.2rem;
-}
-.draft {
-  color: #b35c00;
-}
-.public {
-  color: #0a7;
-}
-</style>
+    <template #footer>
+      <UButton icon="i-lucide-pencil" variant="subtle" size="sm" @click="emit('edit')">
+        Éditer
+      </UButton>
+    </template>
+  </UCard>
+</template>
