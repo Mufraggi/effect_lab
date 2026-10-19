@@ -1,0 +1,28 @@
+# Le contexte de build est la racine du monorepo. Ces exclusions ne sont pas
+# qu'une optimisation : sans elles, le `COPY . .` des Dockerfiles écraserait
+# les `node_modules` installés dans l'image par ceux de la machine hôte (liens
+# pnpm cassés, binaires de la mauvaise plateforme), et embarquerait un `dist/`
+# périmé au lieu de celui que le build vient de produire.
+node_modules
+**/node_modules
+dist
+**/dist
+*.tsbuildinfo
+
+.turbo
+**/.turbo
+.git
+.github
+.idea
+.vscode
+.claude
+.DS_Store
+coverage
+
+.env
+.env.*
+!.env.example
+
+docker-compose*.yml
+**/Dockerfile
+.dockerignore

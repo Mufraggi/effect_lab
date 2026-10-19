@@ -1,0 +1,57 @@
+# Le pendant prod du proxy de `apps/web/vite.config.ts`.
+#
+# Ce fichier est un *template* : l'entrypoint de `nginx:alpine` le passe à
+# envsubst au démarrage, qui ne remplace que les variables présentes dans
+# l'environnement (`API_UPSTREAM`, `DNS_RESOLVER`). Les variables nginx —
+# `$uri`, `$host`, `$http_upgrade`, `$1`… — n'en font pas partie et traversent
+# intactes.
+
+server {
+  listen 80;
+  server_name _;
+  root /usr/share/nginx/html;
+
+  # Résolution DNS différée. Un `proxy_pass` littéral est résolu **au
+  # démarrage** : nginx refuserait de booter si l'API n'est pas encore up.
+  # Passer par une variable déplace la résolution à chaque requête, ce qui
+  # rend l'ordre de démarrage des conteneurs sans importance.
+  resolver ${DNS_RESOLVER} valid=10s ipv6=off;
+  set $upstream "${API_UPSTREAM}";
+
+  # Le préfixe `/api` est retiré avant de passer à l'API, exactement comme le
+  # `rewrite: (path) => path.replace(/^\/api/, "")` du proxy Vite. `$1` capture
+  # ce qui suit, `$is_args$args` préserve la query string.
+  location ~ ^/api(/.*)?$ {
+    proxy_pass http://$upstream$1$is_args$args;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+
+  # Le serveur de synchro EventLog. Pas de rewrite : la route *est* `/eventlog`
+  # côté API (`RpcServer.layerProtocolWebsocket({ path: "/eventlog" })`).
+  location /eventlog {
+    proxy_pass http://$upstream;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    # Une socket de synchro reste ouverte et peut rester longtemps silencieuse :
+    # le timeout par défaut (60 s) la couperait en pleine session.
+    proxy_read_timeout 1h;
+    proxy_send_timeout 1h;
+  }
+
+  # Les assets Vite portent un hash dans leur nom : ils sont immuables.
+  # Tout dans un seul `add_header` — un `expires 1y` en plus émettrait un
+  # second en-tête `Cache-Control`, concaténé au premier par les clients.
+  location /assets/ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+  }
+
+  # `vue-router` est en `createWebHistory` : une route profonde rechargée
+  # (`/todos`) doit rendre `index.html` et non un 404.
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
+}
