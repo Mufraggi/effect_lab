@@ -67,7 +67,7 @@ const remove = (todo: Todo) => write({ _tag: "TodoDeleted", payload: { id: todo.
   <section class="panel" :class="{ offline: !online }">
     <header>
       <span class="status">{{ status }}</span>
-      <button @click="setOnline(!online)">
+      <button type="button" @click="setOnline(!online)">
         {{ online ? "Passer hors ligne" : "Revenir en ligne" }}
       </button>
     </header>
@@ -93,7 +93,7 @@ const remove = (todo: Todo) => write({ _tag: "TodoDeleted", payload: { id: todo.
           @change="rename(todo, $event)"
         />
         <code>{{ todo.id }}</code>
-        <button aria-label="supprimer" @click="remove(todo)">×</button>
+        <button type="button" aria-label="supprimer" @click="remove(todo)">×</button>
       </li>
       <li v-if="todos.length === 0" class="empty">(vide)</li>
     </ul>

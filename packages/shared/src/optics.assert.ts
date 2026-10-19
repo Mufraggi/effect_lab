@@ -109,7 +109,7 @@ const tests: Array<[string, () => void]> = [
 
   ["an empty collection is handled, and no slot is invented", () => {
     assert.deepEqual(Optic.getAll(_everyTag)([]), [])
-    assert.deepEqual(_everyTag.modifyAll((tag) => tag + "!")([]), [])
+    assert.deepEqual(_everyTag.modifyAll((tag) => `${tag}!`)([]), [])
   }],
 
   ["flatten obeys the lens laws for a length-preserving write", () => {

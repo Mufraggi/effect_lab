@@ -13,7 +13,7 @@
  */
 import { Clock, Effect, Layer, Result } from "effect"
 import type { StoreId } from "effect/eventlog/EventLogMessage"
-import { EventJournal, EventLog, EventLogServerUnencrypted as Server, SqlEventLogServerUnencrypted } from "effect/eventlog"
+import { type EventJournal, EventLog, EventLogServerUnencrypted as Server, SqlEventLogServerUnencrypted } from "effect/eventlog"
 import { RpcSerialization, RpcServer } from "effect/rpc"
 import { decodeTodoEntry, entryIdStamp, MaxClockSkewMillis, stampOf, TodoEvents, TodoSchema } from "@effect_lab/shared"
 import { TodoLists } from "../lists/repo.js"

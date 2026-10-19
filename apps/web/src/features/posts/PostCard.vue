@@ -18,7 +18,7 @@ const emit = defineEmits<{ editTitle: [title: string]; edit: [] }>()
       · <span :class="post.meta.visibility">{{ post.meta.visibility }}</span>
       · <span v-for="tag in post.tags" :key="tag" class="tag">{{ tag }}</span>
     </p>
-    <button @click="emit('edit')">Éditer</button>
+    <button type="button" @click="emit('edit')">Éditer</button>
   </li>
 </template>
 

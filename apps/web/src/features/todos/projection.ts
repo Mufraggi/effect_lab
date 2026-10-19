@@ -1,5 +1,5 @@
 import { Match, Result } from "effect"
-import { EventJournal } from "effect/eventlog"
+import type { EventJournal } from "effect/eventlog"
 import { compareStamps, type Stamp, stampOf, type TodoEvent, type TodoId } from "@effect_lab/shared"
 
 export interface Todo {

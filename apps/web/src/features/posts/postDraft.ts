@@ -94,5 +94,6 @@ export const patchFields = [
 export const draftPatch = (draft: Post, from: Post): PostPatch =>
   patchFields.reduce<PostPatch>((patch, field) => {
     const part = field(draft, from)
+    // biome-ignore lint/performance/noAccumulatingSpread: `patchFields` a une entrée par champ de `Post` — une borne fixe à un chiffre, pas une collection. Le spread est ce qui garde le fold immuable, ce que la table d'optics vient démontrer.
     return part === undefined ? patch : { ...patch, ...part }
   }, {})

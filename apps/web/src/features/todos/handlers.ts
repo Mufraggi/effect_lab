@@ -15,7 +15,7 @@
  *     because `TodoToggled` carries the target value rather than a flip.
  */
 import { Effect, Result, SubscriptionRef } from "effect"
-import { EventJournal, EventLog } from "effect/eventlog"
+import { type EventJournal, EventLog } from "effect/eventlog"
 import { stampOf, type TodoEvent, TodoEvents } from "@effect_lab/shared"
 import { applyTodoEvent } from "./projection.js"
 import { ConflictLog, HybridClock, TodoState } from "./state.js"
