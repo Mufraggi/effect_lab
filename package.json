@@ -7,7 +7,7 @@
     "build": "turbo build",
     "test": "turbo test",
     "typecheck": "turbo typecheck",
-    "check": "vp check",
+    "check": "turbo build && vp check",
     "lint": "vp lint",
     "format": "vp fmt",
     "format:check": "vp fmt --check"

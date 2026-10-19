@@ -50,10 +50,15 @@ Trois pièges propres à ce repo :
 
 ## Lancer les vérifications
 
-`vp check` ne couvre pas tout : la commande complète est
-
 ```sh
-pnpm check && pnpm typecheck && pnpm build && pnpm test
+pnpm check && pnpm typecheck && pnpm test
 ```
 
-C'est exactement la séquence de `.github/workflows/ci.yml`.
+**Le build doit précéder le type-check.** Les packages exposent leurs types
+via leur `dist` (`exports` → `./dist/index.d.ts`), donc sur un clone neuf un
+`vp check` lancé seul ne résout pas `@effect_lab/shared` et sort ~96 `TS2339`.
+C'est pour ça que le script `check` est `turbo build && vp check` et que la
+CI build en premier. En local le piège est invisible : `dist/` est déjà là.
+
+Corollaire : ne pas « simplifier » `check` en un `vp check` nu, et ne pas
+réordonner les étapes de `.github/workflows/ci.yml`.

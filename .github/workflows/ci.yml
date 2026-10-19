@@ -32,6 +32,14 @@ jobs:
         with:
           cache: true
 
+      # Le build vient en premier, et ce n'est pas qu'une question d'ordre
+      # d'affichage : les packages exposent leurs types via leur `dist`
+      # (`exports` → `./dist/index.d.ts`). Sans build préalable, le
+      # type-check de `vp check` ne résout pas `@effect_lab/shared` et sort
+      # ~96 TS2339 sur un clone neuf — invisible en local, où `dist/` traîne.
+      - name: Build
+        run: vp run build
+
       # Format (oxfmt) + lint (oxlint) + types des `.ts` (tsgolint), en une passe.
       - name: Format, lint et types
         run: vp check
@@ -41,9 +49,6 @@ jobs:
       # `vue-tsc` de `turbo typecheck`, qui reste la référence sur `apps/web`.
       - name: Types des composants Vue
         run: vp run typecheck
-
-      - name: Build
-        run: vp run build
 
       - name: Tests
         run: vp run test
