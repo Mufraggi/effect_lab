@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Une seule série par branche : un nouveau push annule la précédente — mais
+# **pas** sur `main`, où l'annulation pourrait couper une publication d'image
+# déjà en vol et laisser le registre avec un tag à moitié poussé.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+# Lecture seule par défaut ; seul le job `images` élargit (packages: write).
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: biome · build · typecheck · test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # `pnpm/action-setup` **avant** `setup-node` : le cache `pnpm` de
+      # setup-node a besoin de pnpm sur le PATH pour localiser le store. La
+      # version vient du champ `packageManager`, donc rien à répéter ici.
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Format + lint + assist en une passe, sans écrire. En premier : c'est
+      # l'étape la plus rapide et elle n'a besoin d'aucun build.
+      - name: Format et lint
+        run: pnpm biome ci .
+
+      # Le build vient avant le type-check, et ce n'est pas qu'une question
+      # d'ordre d'affichage : les packages exposent leurs types via leur `dist`
+      # (`exports` → `./dist/index.d.ts`). Sans build préalable, `@effect_lab/shared`
+      # ne se résout pas sur un clone neuf — invisible en local, où `dist/`
+      # traîne. `turbo typecheck` a bien `dependsOn: ["^build"]`, mais `build`
+      # valide en plus le `vite build` du front.
+      - name: Build
+        run: pnpm build
+
+      # `vue-tsc` sur `apps/web` : c'est la seule étape qui type-check les SFC.
+      - name: Types
+        run: pnpm typecheck
+
+      - name: Tests
+        run: pnpm test
+
+  images:
+    name: image ghcr.io (${{ matrix.app }})
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [api, web]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      # Sur une PR on construit sans publier : le Dockerfile est validé, mais
+      # seul `main` écrit dans le registre.
+      - name: Connexion à ghcr.io
+        if: github.event_name == 'push'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tags et labels
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          # metadata-action met le nom en minuscules, ce qui est nécessaire ici :
+          # le propriétaire est `Mufraggi` et ghcr.io n'accepte que des minuscules.
+          images: ghcr.io/${{ github.repository }}-${{ matrix.app }}
+          tags: |
+            type=sha,format=long
+            type=ref,event=pr
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build et push
+        uses: docker/build-push-action@v7
+        with:
+          # Le contexte est la racine : les deux images ont besoin du lockfile,
+          # du pnpm-workspace.yaml et de `packages/shared`.
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # `node:22-slim` et `nginx:alpine` publient arm64, et une image amd64
+          # seule tournerait en émulation sur une machine Apple Silicon. Le coût
+          # est un temps de build doublé — retirer arm64 si la CI devient lente.
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
