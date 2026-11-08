@@ -14,7 +14,7 @@
     }
   },
   "dependencies": {
-    "effect": "^4.0.2"
+    "effect": "4.1.2"
   },
   "devDependencies": {
     "typescript": "^5.8.0"
