@@ -1,5 +1,6 @@
 /**
- * The Pokémon tables, and how one batch of `Pokemon` lands in them.
+ * How one batch of `Pokemon` lands in the Pokémon tables (created by the
+ * `@effect_lab/db` migration 0002_pokemon).
  *
  * The CSV is denormalized; the database is not:
  *
@@ -15,51 +16,7 @@
  */
 import { Array as Arr, Effect, Option } from "effect"
 import { SqlClient } from "effect/sql"
-import { type Pokemon, PokemonType } from "./schema.js"
-
-/** Creates the tables if they are missing (same approach as the API's repos). */
-export const migrate = Effect.gen(function* () {
-  const sql = yield* SqlClient.SqlClient
-
-  // `CREATE TYPE` has no `IF NOT EXISTS`.
-  const typeLabels = PokemonType.literals.map((t) => `'${t}'`).join(", ")
-  yield* sql.unsafe(`
-    DO $$ BEGIN
-      CREATE TYPE pokemon_type AS ENUM (${typeLabels});
-    EXCEPTION WHEN duplicate_object THEN NULL;
-    END $$`)
-
-  yield* sql`
-    CREATE TABLE IF NOT EXISTS pokemon_species (
-      pokedex_number INT PRIMARY KEY CHECK (pokedex_number BETWEEN 1 AND 1025),
-      generation     INT NOT NULL CHECK (generation BETWEEN 1 AND 9),
-      legendary      BOOLEAN NOT NULL
-    )`
-
-  yield* sql`
-    CREATE TABLE IF NOT EXISTS pokemon (
-      id              SERIAL PRIMARY KEY,
-      name            TEXT NOT NULL UNIQUE,
-      pokedex_number  INT NOT NULL REFERENCES pokemon_species,
-      hp              INT NOT NULL CHECK (hp BETWEEN 1 AND 255),
-      attack          INT NOT NULL CHECK (attack BETWEEN 1 AND 255),
-      defense         INT NOT NULL CHECK (defense BETWEEN 1 AND 255),
-      special_attack  INT NOT NULL CHECK (special_attack BETWEEN 1 AND 255),
-      special_defense INT NOT NULL CHECK (special_defense BETWEEN 1 AND 255),
-      speed           INT NOT NULL CHECK (speed BETWEEN 1 AND 255),
-      total           INT GENERATED ALWAYS AS
-                        (hp + attack + defense + special_attack + special_defense + speed) STORED
-    )`
-
-  yield* sql`
-    CREATE TABLE IF NOT EXISTS pokemon_types (
-      pokemon_id INT NOT NULL REFERENCES pokemon ON DELETE CASCADE,
-      slot       SMALLINT NOT NULL CHECK (slot IN (1, 2)),
-      type       pokemon_type NOT NULL,
-      PRIMARY KEY (pokemon_id, slot),
-      UNIQUE (pokemon_id, type)
-    )`
-})
+import type { Pokemon, PokemonType } from "./schema.js"
 
 /**
  * Writes one batch: species first (the forms reference them), then the forms,

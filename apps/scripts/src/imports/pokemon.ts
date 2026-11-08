@@ -13,7 +13,7 @@ import { Effect, Schedule, Stream } from "effect"
 import { Csv } from "effect/encoding"
 import { HttpClient, HttpClientResponse } from "effect/http"
 import { SqlClient } from "effect/sql"
-import { insertBatch, migrate } from "../pokemon/repo.js"
+import { insertBatch } from "../pokemon/repo.js"
 import { PokemonCsvRow } from "../pokemon/schema.js"
 import { runScript } from "../run.js"
 
@@ -25,8 +25,6 @@ const program = Effect.gen(function* () {
     HttpClient.filterStatusOk,
     HttpClient.retryTransient({ times: 3, schedule: Schedule.exponential("500 millis") })
   )
-
-  yield* migrate
 
   const imported = yield* client.get(url).pipe(
     HttpClientResponse.stream,
