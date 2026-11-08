@@ -1,0 +1,22 @@
+{
+  "name": "@effect_lab/scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "import": "tsx --env-file-if-exists=../../.env",
+    "import:pokemon": "tsx --env-file-if-exists=../../.env src/imports/pokemon.ts",
+    "query:pokemon": "tsx --env-file-if-exists=../../.env src/queries/pokemon.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@effect/platform-node": "4.1.2",
+    "@effect/sql-pg": "4.1.2",
+    "@effect_lab/shared": "workspace:*",
+    "effect": "4.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.0"
+  }
+}

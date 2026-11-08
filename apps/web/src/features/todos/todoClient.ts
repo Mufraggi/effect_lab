@@ -77,10 +77,10 @@ export const makeTodoClient = (user: TodoUser) => {
       const client = yield* EventLog.makeClient(TodoSchema)
       const at = yield* HybridClock.use((clock) => clock.tick)
       return yield* Match.valueTags(stampEvent(event, at), {
-        TodoAdded: ({ payload }) => client("TodoAdded", payload),
-        TodoRenamed: ({ payload }) => client("TodoRenamed", payload),
-        TodoToggled: ({ payload }) => client("TodoToggled", payload),
-        TodoDeleted: ({ payload }) => client("TodoDeleted", payload)
+        TodoAdded: ({ payload }) => client({ event: "TodoAdded", payload }),
+        TodoRenamed: ({ payload }) => client({ event: "TodoRenamed", payload }),
+        TodoToggled: ({ payload }) => client({ event: "TodoToggled", payload }),
+        TodoDeleted: ({ payload }) => client({ event: "TodoDeleted", payload })
       })
     })
   )
