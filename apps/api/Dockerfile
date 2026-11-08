@@ -28,6 +28,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/
 COPY apps/scripts/package.json apps/scripts/
 COPY apps/web/package.json apps/web/
+COPY packages/db/package.json packages/db/
 COPY packages/shared/package.json packages/shared/
 COPY packages/exemple/package.json packages/exemple/
 
@@ -70,6 +71,7 @@ ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=deps /app/packages/db/node_modules ./packages/db/node_modules
 
 COPY --from=build /app/package.json ./
 COPY --from=build /app/apps/api/package.json ./apps/api/
@@ -78,12 +80,16 @@ COPY --from=build /app/apps/api/dist ./apps/api/dist
 # sinon l'import se résout sur un `exports` qui ne pointe sur rien.
 COPY --from=build /app/packages/shared/package.json ./packages/shared/
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
+# Pareil pour `@effect_lab/db` : les migrations y sont compilées, l'API les
+# applique au démarrage.
+COPY --from=build /app/packages/db/package.json ./packages/db/
+COPY --from=build /app/packages/db/dist ./packages/db/dist
 
 USER node
 EXPOSE 3001
 
 # `DATABASE_URL` est attendu dans l'environnement (voir `.env.example`) : c'est
-# le Postgres du serveur EventLog. Le `Config.Redacted` d'`apps/api/src/db.ts`
+# le Postgres du serveur EventLog. Le `Config.Redacted` de `packages/db/src/client.ts`
 # fait échouer la construction des layers s'il manque — le process ne sert
 # jamais une requête avec une base absente.
 CMD ["node", "apps/api/dist/server.js"]

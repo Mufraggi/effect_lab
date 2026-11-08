@@ -29,6 +29,9 @@ importers:
       '@effect/sql-pg':
         specifier: 4.1.2
         version: 4.1.2(effect@4.1.2)
+      '@effect_lab/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@effect_lab/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -54,6 +57,9 @@ importers:
       '@effect/sql-pg':
         specifier: 4.1.2
         version: 4.1.2(effect@4.1.2)
+      '@effect_lab/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@effect_lab/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -113,6 +119,28 @@ importers:
       vue-tsc:
         specifier: ^3.0.0
         version: 3.3.12(typescript@5.9.3)
+
+  packages/db:
+    dependencies:
+      '@effect/platform-node':
+        specifier: 4.1.2
+        version: 4.1.2(effect@4.1.2)(redis@6.3.0)
+      '@effect/sql-pg':
+        specifier: 4.1.2
+        version: 4.1.2(effect@4.1.2)
+      effect:
+        specifier: 4.1.2
+        version: 4.1.2
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.5
+      tsx:
+        specifier: ^4.20.0
+        version: 4.23.15
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
 
   packages/exemple:
     dependencies:
