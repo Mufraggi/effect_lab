@@ -10,6 +10,7 @@ Le premier article de la série porte sur `Optic`. Ce repo en est la démonstrat
 - `apps/api` — backend Effect (`effect/http-api`), état dans un `Ref` au sein d'un service
 - `apps/web` — frontend Vite + Vue 3 (`@effect/atom-vue`, proxy `/api` vers le back)
 - `apps/scripts` — scripts d'import ponctuels contre la base de l'API (lancés avec `tsx`, voir son README)
+- `packages/db` — client Postgres et migrations (`effect/sql/Migrator`), appliquées au démarrage de l'API (voir son README)
 - `packages/exemple` — snippets isolés pour l'article
 
 Le front est organisé en **vertical slices** : une route = un dossier autonome.
