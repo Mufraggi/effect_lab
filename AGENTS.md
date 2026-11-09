@@ -26,8 +26,13 @@ retrait).
 
 - `pnpm lint` / `pnpm format` séparément, `pnpm check` corrige les deux sur
   place.
-- `pnpm verify` est exactement ce que lance la CI : `oxfmt --check` puis
-  Oxlint, sans écrire.
+- `pnpm format:check` est la vérification de format sans écriture, celle que
+  la CI lance en premier.
+
+Attention à l'ordre : **le lint est type-aware**, donc il a besoin du `dist/`
+des packages, exactement comme `pnpm typecheck` (voir « Build avant typecheck
+— et avant le lint » plus bas). En local ça ne se voit pas, `dist/` traîne.
+En CI le lint vient après le build, et il ne faut pas le remonter.
 
 Le lint passe par `effect-tsgo oxlint`, **jamais** par `oxlint` nu : le
 plugin `effecttsgo` n'existe que dans le binding patché que fournit
@@ -103,13 +108,22 @@ Effect sont en `warning` et ne la font pas échouer. Maintenant que le compte
 est à zéro, `--deny-warnings` rendrait les secondes bloquantes elles aussi —
 le pas restant pour que la CI tienne le zéro plutôt que de le constater.
 
-# Build avant typecheck
+# Build avant typecheck — et avant le lint
 
 Les packages exposent leurs types via leur `dist` (`exports` →
 `./dist/index.d.ts`) et il n'y a aucun project reference. Sur un clone neuf,
 un type-check lancé avant le build ne résout pas `@effect_lab/shared` et sort
 une centaine de TS2339. C'est invisible en local, où `dist/` traîne — donc à
 vérifier dans un clone vierge, pas dans le dossier de travail.
+
+**Le lint tombe dans le même piège depuis le passage à Oxlint.** Il est
+type-aware : il fait tourner le checker, donc un `dist/` absent lui fait
+inventer des diagnostics qui n'existent pas — `missing-effect-context` sur
+du code correct, et des `'X' is an 'error' type that acts as 'any'`. Du temps
+de Biome le lint était purement syntaxique et pouvait passer en premier ;
+ce n'est plus vrai, et la CI l'a appris à ses dépens. Pour reproduire :
+`rm -rf packages/*/dist apps/*/dist` puis lancer le lint, qui doit sortir
+neuf erreurs. Seul `pnpm format:check` peut rester avant le build.
 
 Le front a sa propre version du même piège, d'où son `build` qui lance
 `vite build` **avant** `vue-tsc` et non l'inverse : le plugin Vite de Nuxt UI

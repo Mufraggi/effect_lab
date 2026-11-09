@@ -9,7 +9,7 @@
     "lint": "effect-tsgo oxlint --type-aware",
     "format": "oxfmt .",
     "check": "oxfmt . && effect-tsgo oxlint --type-aware --fix",
-    "verify": "oxfmt --check . && effect-tsgo oxlint --type-aware"
+    "format:check": "oxfmt --check ."
   },
   "devDependencies": {
     "@effect/language-service": "^0.87.5",

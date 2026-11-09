@@ -107,16 +107,16 @@ Les optics feuilles vivent dans `packages/shared/src/optics.ts` et **nulle part 
 
 ## Scripts
 
-| Commande         | Description                              |
-| ---------------- | ---------------------------------------- |
-| `pnpm dev`       | lance api + web en parallèle (turbo)     |
-| `pnpm build`     | build tous les packages/apps             |
-| `pnpm typecheck` | vérifie les types (dont les `.vue`)      |
-| `pnpm test`      | assertions optics + tests HTTP in-memory |
-| `pnpm lint`      | lint Oxlint (généraliste + Effect)       |
-| `pnpm format`    | formate tout le workspace (oxfmt)        |
-| `pnpm check`     | lint + format, corrections appliquées    |
-| `pnpm verify`    | lint + format en lecture seule (la CI)   |
+| Commande            | Description                              |
+| ------------------- | ---------------------------------------- |
+| `pnpm dev`          | lance api + web en parallèle (turbo)     |
+| `pnpm build`        | build tous les packages/apps             |
+| `pnpm typecheck`    | vérifie les types (dont les `.vue`)      |
+| `pnpm test`         | assertions optics + tests HTTP in-memory |
+| `pnpm lint`         | lint Oxlint (généraliste + Effect)       |
+| `pnpm format`       | formate tout le workspace (oxfmt)        |
+| `pnpm check`        | lint + format, corrections appliquées    |
+| `pnpm format:check` | vérifie le format sans écrire            |
 
 Les tests ne dépendent d'aucun runner : `packages/shared` assère le comportement des optics avec du Node nu, `apps/api` monte l'API en mémoire via `HttpApiTest` (pas de socket ouverte), `apps/web` assère la logique de rebase du brouillon — extraite des composants exprès pour être testable sans DOM.
 
@@ -146,4 +146,4 @@ C'est pour ce plugin que tous les scripts lancent `effect-tsgo oxlint` et jamais
 
 Le repo est à **zéro signalement**, Effect compris. Les règles généralistes (`correctness`, `perf`) sont en `error` et font échouer la CI ; les règles Effect sont en `warning` et ne la font pas échouer. Maintenant que le compte est à zéro, `--deny-warnings` rendrait les secondes bloquantes elles aussi.
 
-La CI (`.github/workflows/ci.yml`) joue `pnpm verify`, puis `build`, `typecheck` et `test` — dans cet ordre, parce que les packages exposent leurs types via leur `dist` et que `@effect_lab/shared` ne se résout pas avant le build sur un clone neuf. Sur un merge dans `main`, elle publie en plus `ghcr.io/mufraggi/effect_lab-api` et `-web` (tags `latest` et `sha-<commit>`). Sur une PR les images sont construites sans être publiées, ce qui valide les Dockerfiles sans écrire dans le registre.
+La CI (`.github/workflows/ci.yml`) joue `format:check`, puis `build`, `lint`, `typecheck` et `test` — dans cet ordre, parce que les packages exposent leurs types via leur `dist` et que `@effect_lab/shared` ne se résout pas avant le build sur un clone neuf. Le lint est **après** le build et non avant : il est type-aware, donc sans `dist/` il invente des diagnostics. Seul le format, purement syntaxique, peut passer en premier. Sur un merge dans `main`, elle publie en plus `ghcr.io/mufraggi/effect_lab-api` et `-web` (tags `latest` et `sha-<commit>`). Sur une PR les images sont construites sans être publiées, ce qui valide les Dockerfiles sans écrire dans le registre.
