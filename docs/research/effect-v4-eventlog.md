@@ -24,19 +24,19 @@
 
 ## 1. Modules, exports et signatures (4.0.2)
 
-| Module (import) | Exports utiles | Source |
-|---|---|---|
-| `effect/eventlog/Event` | `make({ tag, primaryKey, payload?, success?, error? })`, `addError` | `E/Event.ts:421-454` |
-| `effect/eventlog/EventGroup` | `empty`, `.add({ tag, primaryKey, payload?, success?, error? })`, `.addError` | `E/EventGroup.ts:59-85`, `:205` |
-| `effect/eventlog/EventLog` | `EventLog` (service : `write`, `entries`, `destroy`), `Registry`, `layerRegistry`, `Identity`, `schema(...groups)`, `group(group, h => h.handle(...))`, `groupCompaction`, `groupReactivity`, `layer(schema, handlersLayer)`, `layerEventLog`, `makeClient(schema)`, `makeIdentity`, `encodeIdentityString`/`decodeIdentityString`, `IdentitySchema`, `CurrentStoreId`, `makeReplayFromRemote` | `E/EventLog.ts:53-64`, `:74`, `:114`, `:189-192`, `:241`, `:558`, `:596`, `:695`, `:729`, `:996`, `:1034`, `:1059`, `:436-438`, `:480-511` |
-| `effect/eventlog/EventJournal` | `EventJournal` (service), `layerMemory`, `makeMemory`, `layerIndexedDb({ database? })`, `makeIndexedDb`, `Entry`, `RemoteEntry`, `EntryId`, `RemoteId`, `EventJournalError` | `E/EventJournal.ts:44-115`, `:544`, `:395`, `:822-828`, `:559`, `:298`, `:378` |
-| `effect/eventlog/EventLogRemote` | `EventLogRemote` (service : `id`, `changes`, `write`, `whenAuthenticated`), `layerUnencrypted`, `layerEncrypted`, `makeUnencrypted`, `makeEncrypted`, `makeWith`, `EventLogRemoteClient`, `EventLogRemoteError` | `E/EventLogRemote.ts:61-76`, `:392-398`, `:376-383`, `:354`, `:318`, `:167`, `:139` |
-| `effect/eventlog/EventLogServer` | **Pas de `layer`** : seulement `layerRpcHandlers(options)` (bas niveau, partagé), `layerAuthMiddleware`, `AuthenticatedIdentities`, `ChunkedMessageState` | `E/EventLogServer.ts:51`, `:79`, `:252`, `:269` |
-| `effect/eventlog/EventLogServerUnencrypted` | `layer(schema, handlersLayer)`, `layerNoRpcServer`, `layerServer`, `layerRpcHandlers`, `Storage`, `layerStorageMemory`, `makeStorageMemory`, `StoreMapping`, `layerStoreMappingStatic({ storeId })`, `EventLogServerAuthorization`, `EventLogServerAuthError`, `EventLogServerStoreError`, `EventLogServerUnencrypted` (service `makeWrite`), `makeWrite`, `compactBacklog` | `E/EventLogServerUnencrypted.ts:839-855`, `:865`, `:800`, `:114`, `:387-404`, `:701`, `:593`, `:322-333`, `:356-367`, `:294-307`, `:274`, `:259`, `:59`, `:83` |
-| `effect/eventlog/EventLogServerEncrypted` | `layer` (pas de paramètre schema/handlers), `layerRpcHandlers`, `Storage` (**un autre** service que celui du non chiffré), `layerStorageMemory` | `E/EventLogServerEncrypted.ts:123`, `:44`, `:170-186`, `:277` |
-| `effect/eventlog/EventLogEncryption` | `EventLogEncryption`, `layerSubtle`, `makeEncryptionSubtle` | `E/EventLogEncryption.ts:81`, `:172`, `:108` |
-| `effect/eventlog/EventLogMessage` | `StoreId` (string brandé), `EventLogRemoteRpcs`, `EventLogProtocolError`, … | `E/EventLogMessage.ts:50-59`, `:386`, `:73` |
-| Variantes SQL | `SqlEventJournal.layer`, `SqlEventLogServerUnencrypted.layerStorage`, `SqlEventLogServerEncrypted` | `E/SqlEventJournal.ts:324`, `E/SqlEventLogServerUnencrypted.ts:502` |
+| Module (import)                             | Exports utiles                                                                                                                                                                                                                                                                                                                                                                                 | Source                                                                                                                                                         |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `effect/eventlog/Event`                     | `make({ tag, primaryKey, payload?, success?, error? })`, `addError`                                                                                                                                                                                                                                                                                                                            | `E/Event.ts:421-454`                                                                                                                                           |
+| `effect/eventlog/EventGroup`                | `empty`, `.add({ tag, primaryKey, payload?, success?, error? })`, `.addError`                                                                                                                                                                                                                                                                                                                  | `E/EventGroup.ts:59-85`, `:205`                                                                                                                                |
+| `effect/eventlog/EventLog`                  | `EventLog` (service : `write`, `entries`, `destroy`), `Registry`, `layerRegistry`, `Identity`, `schema(...groups)`, `group(group, h => h.handle(...))`, `groupCompaction`, `groupReactivity`, `layer(schema, handlersLayer)`, `layerEventLog`, `makeClient(schema)`, `makeIdentity`, `encodeIdentityString`/`decodeIdentityString`, `IdentitySchema`, `CurrentStoreId`, `makeReplayFromRemote` | `E/EventLog.ts:53-64`, `:74`, `:114`, `:189-192`, `:241`, `:558`, `:596`, `:695`, `:729`, `:996`, `:1034`, `:1059`, `:436-438`, `:480-511`                     |
+| `effect/eventlog/EventJournal`              | `EventJournal` (service), `layerMemory`, `makeMemory`, `layerIndexedDb({ database? })`, `makeIndexedDb`, `Entry`, `RemoteEntry`, `EntryId`, `RemoteId`, `EventJournalError`                                                                                                                                                                                                                    | `E/EventJournal.ts:44-115`, `:544`, `:395`, `:822-828`, `:559`, `:298`, `:378`                                                                                 |
+| `effect/eventlog/EventLogRemote`            | `EventLogRemote` (service : `id`, `changes`, `write`, `whenAuthenticated`), `layerUnencrypted`, `layerEncrypted`, `makeUnencrypted`, `makeEncrypted`, `makeWith`, `EventLogRemoteClient`, `EventLogRemoteError`                                                                                                                                                                                | `E/EventLogRemote.ts:61-76`, `:392-398`, `:376-383`, `:354`, `:318`, `:167`, `:139`                                                                            |
+| `effect/eventlog/EventLogServer`            | **Pas de `layer`** : seulement `layerRpcHandlers(options)` (bas niveau, partagé), `layerAuthMiddleware`, `AuthenticatedIdentities`, `ChunkedMessageState`                                                                                                                                                                                                                                      | `E/EventLogServer.ts:51`, `:79`, `:252`, `:269`                                                                                                                |
+| `effect/eventlog/EventLogServerUnencrypted` | `layer(schema, handlersLayer)`, `layerNoRpcServer`, `layerServer`, `layerRpcHandlers`, `Storage`, `layerStorageMemory`, `makeStorageMemory`, `StoreMapping`, `layerStoreMappingStatic({ storeId })`, `EventLogServerAuthorization`, `EventLogServerAuthError`, `EventLogServerStoreError`, `EventLogServerUnencrypted` (service `makeWrite`), `makeWrite`, `compactBacklog`                    | `E/EventLogServerUnencrypted.ts:839-855`, `:865`, `:800`, `:114`, `:387-404`, `:701`, `:593`, `:322-333`, `:356-367`, `:294-307`, `:274`, `:259`, `:59`, `:83` |
+| `effect/eventlog/EventLogServerEncrypted`   | `layer` (pas de paramètre schema/handlers), `layerRpcHandlers`, `Storage` (**un autre** service que celui du non chiffré), `layerStorageMemory`                                                                                                                                                                                                                                                | `E/EventLogServerEncrypted.ts:123`, `:44`, `:170-186`, `:277`                                                                                                  |
+| `effect/eventlog/EventLogEncryption`        | `EventLogEncryption`, `layerSubtle`, `makeEncryptionSubtle`                                                                                                                                                                                                                                                                                                                                    | `E/EventLogEncryption.ts:81`, `:172`, `:108`                                                                                                                   |
+| `effect/eventlog/EventLogMessage`           | `StoreId` (string brandé), `EventLogRemoteRpcs`, `EventLogProtocolError`, …                                                                                                                                                                                                                                                                                                                    | `E/EventLogMessage.ts:50-59`, `:386`, `:73`                                                                                                                    |
+| Variantes SQL                               | `SqlEventJournal.layer`, `SqlEventLogServerUnencrypted.layerStorage`, `SqlEventLogServerEncrypted`                                                                                                                                                                                                                                                                                             | `E/SqlEventJournal.ts:324`, `E/SqlEventLogServerUnencrypted.ts:502`                                                                                            |
 
 Signatures clés :
 
@@ -61,6 +61,7 @@ EventJournal.layerIndexedDb(options?: { database?: string }): Layer<EventJournal
 ```
 
 **Écarts avec le plan :**
+
 - `EventLogServer.layer` n'existe pas. On utilise `EventLogServerUnencrypted.layer`, qui est bien celui du plan.
 - `Identity` est `EventLog.Identity` (`E/EventLog.ts:189`). Ce n'est pas un module à part entière.
 - `Storage` existe en **deux** versions incompatibles, une non chiffrée et une chiffrée. Il faut importer celle de `EventLogServerUnencrypted`.
@@ -72,9 +73,11 @@ EventJournal.layerIndexedDb(options?: { database?: string }): Layer<EventJournal
 ## 2. Détection des conflits
 
 ### Qu'est-ce qu'un conflit ?
+
 C'est une entrée existante qui a **le même `event` (tag) ET la même `primaryKey`** que l'entrée entrante, et qui est **plus récente** qu'elle. Ce critère est identique dans les trois implémentations.
 
 **Journal mémoire côté client** (`E/EventJournal.ts:465-482`) :
+
 ```ts
 for (const originEntry of compacted) {
   const entryMillis = entryIdMillis(originEntry.id)
@@ -90,7 +93,7 @@ for (const originEntry of compacted) {
         conflicts.push(scannedEntry)
       }
     }
-    yield* options.effect({ entry: originEntry, conflicts })
+    yield * options.effect({ entry: originEntry, conflicts })
     break
   }
 }
@@ -103,18 +106,21 @@ for (const originEntry of compacted) {
 Le test officiel `"reports the first newer conflicting entry"` confirme ce comportement : une entrée à 2000 ms déjà présente est remontée comme conflit d'une entrée entrante à 1000 ms (`test/eventlog/EventJournal.test.ts:77-93`). Le test serveur `"indexes conflicts from the sliced history"` (`test/eventlog/EventLogServerUnencrypted.test.ts:43-117`) montre qu'une entrée de même clé mais **plus ancienne** n'est pas un conflit, alors qu'une entrée de même clé **plus récente** en est un.
 
 ### Ordre de référence
+
 - L'ordre retenu est **l'horodatage de création encodé dans l'`EntryId` UUIDv7**, généré par l'horloge **du client** au moment de l'écriture (`makeEntryIdUnsafe`, `E/EventJournal.ts:270-271`, et `createdAtMillis`, `:352-354`). Le tri `Entry.Order` porte sur les octets de l'UUID (`E/EventJournal.ts:243-250`, `:334`).
 - La **séquence distante** (`remoteSequence`) ne sert qu'à reprendre la synchronisation (`nextRemoteSequence`, `E/EventLog.ts:837`) et à streamer le backlog (`E/EventLogServerUnencrypted.ts:672-689`). Elle ne joue **aucun rôle** dans les conflits.
 - Le journal mémoire est re-trié par `createdAtMillis` après import (`E/EventJournal.ts:495`). En revanche, **les handlers sont exécutés dans l'ordre d'arrivée** (l'ordre de séquence serveur), pas dans l'ordre chronologique. Une projection doit donc tolérer un ordre quelconque.
 
 ### Ce que reçoit le handler et quand il est appelé
+
 - **Écriture locale** : `conflicts: []` est codé en dur (`E/EventLog.ts:941-946`). Le handler s'exécute **avant** le commit, et l'entrée n'est commitée que si le handler réussit (`E/EventJournal.ts:421-443` pour la mémoire, `:599-616` pour IndexedDB).
 - **Rejeu d'entrées distantes côté client** : `journal.writeFromRemote(..., effect: replayFromRemote)` (`E/EventLog.ts:843-891`). `makeReplayFromRemote` décode le payload de chaque conflit et appelle `handler({ storeId, payload, entry, conflicts: decodedConflicts })` (`E/EventLog.ts:750-768`). **Les erreurs du handler sont seulement loguées** (`Effect.catchCause(Effect.logError)`, `:786`), et l'entrée est stockée malgré tout (`E/EventJournal.ts:483-494`).
 - **Côté serveur** : à chaque écriture reçue d'un client, les handlers enregistrés sur le serveur sont appelés avec leurs conflits (`E/EventLogServerUnencrypted.ts:134-145`, `:881-933`). **Si un handler serveur échoue**, tout le lot est rejeté avec `InternalServerError "Persistence failure"` (`:218-228`), et le client réessaie **indéfiniment** (`E/EventLog.ts:794-797`, `:904-908`).
 - Les doublons, c'est-à-dire l'écho de ses propres entrées renvoyé par le serveur, sont ignorés. Ils déclenchent seulement une invalidation de réactivité (`E/EventJournal.ts:449-456`, `E/EventLog.ts:889`).
 
 ### Ce que cela implique pour les scénarios
-- **Scénario 2 (renommage contre renommage)** : on écrit `if (conflicts.length > 0) return Effect.void` dans `TodoRenamed`, ce qui donne du LWW sur l'horloge client. Exemple : Alice renomme hors-ligne à t2, Bob à t1 < t2. Quand l'entrée de Bob arrive chez Alice, son entrée t2 est un conflit, donc elle est ignorée. Quand l'entrée d'Alice arrive chez Bob, il n'y a pas d'entrée plus récente, donc elle est appliquée. Les deux convergent vers le titre d'Alice. *(Déduit du code ci-dessus ; non exécuté.)*
+
+- **Scénario 2 (renommage contre renommage)** : on écrit `if (conflicts.length > 0) return Effect.void` dans `TodoRenamed`, ce qui donne du LWW sur l'horloge client. Exemple : Alice renomme hors-ligne à t2, Bob à t1 < t2. Quand l'entrée de Bob arrive chez Alice, son entrée t2 est un conflit, donc elle est ignorée. Quand l'entrée d'Alice arrive chez Bob, il n'y a pas d'entrée plus récente, donc elle est appliquée. Les deux convergent vers le titre d'Alice. _(Déduit du code ci-dessus ; non exécuté.)_
 - **Scénario 3 (bascule contre suppression)** : les tags diffèrent, donc **jamais de `conflicts`**. Les handlers doivent tenir des tombstones : `TodoDeleted` ajoute l'id à `deleted`, et `TodoToggled`/`TodoRenamed`/`TodoAdded` sur un id supprimé ne font rien. Pour que l'opération soit idempotente quel que soit l'ordre d'arrivée, `TodoToggled` doit porter `done: boolean` (une valeur cible) plutôt qu'une inversion. Autre option : un seul tag `TodoChanged` avec un payload discriminé, ce qui fait jouer `conflicts` entre bascule et suppression.
 - **Scénario 1** : les primaryKeys diffèrent, donc aucun conflit. C'est confirmé par le filtre ci-dessus.
 
@@ -146,17 +152,17 @@ Le test officiel `"reports the first newer conflicting entry"` confirme ce compo
 
 ## 5. Transports
 
-| Rôle | Couche | Paquet / source |
-|---|---|---|
-| Serveur RPC (protocole) sur `SocketServer` | `RpcServer.layerProtocolSocketServer` (requiert `RpcSerialization` + `SocketServer`) | `effect/rpc`, `S/rpc/RpcServer.ts:971-975` |
-| Serveur RPC en WebSocket via `HttpRouter` | `RpcServer.layerProtocolWebsocket({ path })` (requiert `RpcSerialization` + `HttpRouter`) | `S/rpc/RpcServer.ts:1041-1050` |
-| SocketServer WebSocket (Node, paquet `ws`) | `NodeSocketServer.layerWebSocket(wsServerOptions)` | `@effect/platform-node` (réexporte `platform-node-shared`), `.../platform-node-shared/src/NodeSocketServer.ts:267-272` |
-| Serveur HTTP Node (si on passe par `HttpRouter`) | `NodeHttpServer.layer(() => createServer(), { port })` | `@effect/platform-node/src/NodeHttpServer.ts:478-489` |
-| Client RPC (protocole) sur `Socket` | `RpcClient.layerProtocolSocket({ retryTransientErrors?, retryPolicy?, pingInterval? })` | `S/rpc/RpcClient.ts:1274-1288` |
-| Socket WebSocket client (Node) | `NodeSocket.layerWebSocket(url)` | `@effect/platform-node/src/NodeSocket.ts:71-82` |
-| Socket WebSocket client (navigateur) | `Socket.layerWebSocket(url)` + `Socket.layerWebSocketConstructorGlobal` (cœur `effect/socket`), ou `BrowserSocket.layerWebSocket(url)` de `@effect/platform-browser` | `S/socket/Socket.ts:1201-1208`, `:865` ; `packages/platform/browser/src/BrowserSocket.ts:40-57` (tag `effect@4.0.2` sur GitHub) |
-| Sérialisation | `RpcSerialization.layerJson`, `layerNdjson`, `layerSchemaBinary`, … (pas de msgpack en 4.0.2) | `S/rpc/RpcSerialization.ts:595-665` |
-| Tests en mémoire | `RpcTest.makeClient(EventLogRemoteRpcs)` | utilisé par `test/eventlog/EventLogServerUnencrypted.test.ts:81-95` |
+| Rôle                                             | Couche                                                                                                                                                               | Paquet / source                                                                                                                 |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Serveur RPC (protocole) sur `SocketServer`       | `RpcServer.layerProtocolSocketServer` (requiert `RpcSerialization` + `SocketServer`)                                                                                 | `effect/rpc`, `S/rpc/RpcServer.ts:971-975`                                                                                      |
+| Serveur RPC en WebSocket via `HttpRouter`        | `RpcServer.layerProtocolWebsocket({ path })` (requiert `RpcSerialization` + `HttpRouter`)                                                                            | `S/rpc/RpcServer.ts:1041-1050`                                                                                                  |
+| SocketServer WebSocket (Node, paquet `ws`)       | `NodeSocketServer.layerWebSocket(wsServerOptions)`                                                                                                                   | `@effect/platform-node` (réexporte `platform-node-shared`), `.../platform-node-shared/src/NodeSocketServer.ts:267-272`          |
+| Serveur HTTP Node (si on passe par `HttpRouter`) | `NodeHttpServer.layer(() => createServer(), { port })`                                                                                                               | `@effect/platform-node/src/NodeHttpServer.ts:478-489`                                                                           |
+| Client RPC (protocole) sur `Socket`              | `RpcClient.layerProtocolSocket({ retryTransientErrors?, retryPolicy?, pingInterval? })`                                                                              | `S/rpc/RpcClient.ts:1274-1288`                                                                                                  |
+| Socket WebSocket client (Node)                   | `NodeSocket.layerWebSocket(url)`                                                                                                                                     | `@effect/platform-node/src/NodeSocket.ts:71-82`                                                                                 |
+| Socket WebSocket client (navigateur)             | `Socket.layerWebSocket(url)` + `Socket.layerWebSocketConstructorGlobal` (cœur `effect/socket`), ou `BrowserSocket.layerWebSocket(url)` de `@effect/platform-browser` | `S/socket/Socket.ts:1201-1208`, `:865` ; `packages/platform/browser/src/BrowserSocket.ts:40-57` (tag `effect@4.0.2` sur GitHub) |
+| Sérialisation                                    | `RpcSerialization.layerJson`, `layerNdjson`, `layerSchemaBinary`, … (pas de msgpack en 4.0.2)                                                                        | `S/rpc/RpcSerialization.ts:595-665`                                                                                             |
+| Tests en mémoire                                 | `RpcTest.makeClient(EventLogRemoteRpcs)`                                                                                                                             | utilisé par `test/eventlog/EventLogServerUnencrypted.test.ts:81-95`                                                             |
 
 - `@effect/platform-node@4.0.2` est installé (`apps/api/package.json`). `@effect/platform-browser@4.0.2` existe sur npm (`npm view`) mais **n'est pas installé**. Il n'est pas nécessaire non plus, puisque `effect/socket` fournit le constructeur global.
 - **Vérifié en exécutant le prototype** (`packages/exemple/src/eventlog/`) : `RpcSerialization.layerJson` **ne marche pas**, le client échoue au handshake avec `SchemaError: Expected Uint8Array at ["value"]["challenge"]`. `RpcSerialization.layerSchemaBinary()` des deux côtés fonctionne.
@@ -176,6 +182,7 @@ Le test officiel `"reports the first newer conflicting entry"` confirme ce compo
 ## 7. Tests et exemples de référence
 
 Aucun exemple bout en bout « deux clients, un serveur » n'existe, ni dans le paquet installé ni dans les `ai-docs` (`node_modules/.pnpm/effect@4.0.2/node_modules/effect/ai-docs/src`, qui n'a pas de section eventlog). Les tests du tag `effect@4.0.2` (https://github.com/Effect-TS/effect/tree/effect@4.0.2/packages/effect/test/eventlog) restent les meilleures références :
+
 - `EventLog.test.ts` : assemblage minimal client (`EventLog.layer` + `layerMemory` + `Identity` via `makeIdentity`/`layerSubtle`, l.22-42), plus le retry offline d'un remote factice (l.63-133).
 - `EventJournal.test.ts` : séquences distantes (l.51-75), conflit « plus récent » (l.77-93), relais entre remotes (l.14-49).
 - `EventLogServerUnencrypted.test.ts` : serveur complet derrière `RpcTest` avec `StoreMapping` et `EventLogServerAuthorization` écrits à la main (l.81-95), conflits côté serveur (l.43-117), refus d'identité (l.147-232).
@@ -204,12 +211,14 @@ Aucun exemple bout en bout « deux clients, un serveur » n'existe, ni dans le p
 ## Verdict sur le plan de démo
 
 **Confirmé**
+
 - Serveur : `EventLogServerUnencrypted.layer(schema, handlers)` + `EventLogServerUnencrypted.layerStorageMemory` + transport RPC WebSocket (`RpcServer.layerProtocolSocketServer` + `NodeSocketServer.layerWebSocket`, ou `layerProtocolWebsocket` + `HttpRouter`) + `StoreMapping` + `EventLogServerAuthorization`.
 - Client : `EventLog.Identity` par utilisateur, `EventJournal.layerIndexedDb({ database: "alice" | "bob" })`, `EventLogRemote.layerUnencrypted`.
 - Domaine : `EventGroup.empty.add(...)` ×4, `EventLog.group(...).handle(...)`, résolution LWW via `conflicts` pour le scénario 2.
 - Scénario 1 : sans conflit.
 
 **À corriger**
+
 - Imports : `effect/eventlog/...`, pas `effect/unstable/eventlog`.
 - `StoreMapping` : `layerStoreMappingStatic({ storeId: StoreId.make("default") })` suffit, puisque les deux utilisateurs utilisent le store par défaut. Ce n'est pas un mapping par clé publique.
 - `EventLogServerAuthorization` : aucune couche n'est fournie, il faut l'écrire avec `Layer.succeed`.
@@ -220,6 +229,7 @@ Aucun exemple bout en bout « deux clients, un serveur » n'existe, ni dans le p
 - Des handlers **serveur** sont obligatoires (au minimum des no-op).
 
 **Inconnu / Non vérifié**
+
 - Le comportement de `EventLogRemote.layerUnencrypted` si le serveur est injoignable au moment de la construction.
 - Le partage effectif de l'instance `Reactivity` entre `EventLog.layer` et `Atom.runtime`.
 - L'ordre des finalizers (flush final) à la fermeture du scope du remote.
@@ -236,46 +246,95 @@ import { EventGroup, EventLog } from "effect/eventlog"
 
 const Id = Schema.Struct({ id: Schema.String })
 export const TodoEvents = EventGroup.empty
-  .add({ tag: "TodoAdded",   primaryKey: (p) => p.id, payload: Schema.Struct({ id: Schema.String, title: Schema.String }) })
-  .add({ tag: "TodoRenamed", primaryKey: (p) => p.id, payload: Schema.Struct({ id: Schema.String, title: Schema.String }) })
-  .add({ tag: "TodoToggled", primaryKey: (p) => p.id, payload: Schema.Struct({ id: Schema.String, done: Schema.Boolean }) })
+  .add({
+    tag: "TodoAdded",
+    primaryKey: (p) => p.id,
+    payload: Schema.Struct({ id: Schema.String, title: Schema.String })
+  })
+  .add({
+    tag: "TodoRenamed",
+    primaryKey: (p) => p.id,
+    payload: Schema.Struct({ id: Schema.String, title: Schema.String })
+  })
+  .add({
+    tag: "TodoToggled",
+    primaryKey: (p) => p.id,
+    payload: Schema.Struct({ id: Schema.String, done: Schema.Boolean })
+  })
   .add({ tag: "TodoDeleted", primaryKey: (p) => p.id, payload: Id })
 export const TodoSchema = EventLog.schema(TodoEvents)
 
 // Projection côté client (SubscriptionRef -> facile à brancher sur Atom)
-export interface Todo { readonly id: string; readonly title: string; readonly done: boolean }
-export interface TodoStateShape { readonly todos: ReadonlyMap<string, Todo>; readonly deleted: ReadonlySet<string> }
-export class TodoState extends Context.Service<TodoState, SubscriptionRef.SubscriptionRef<TodoStateShape>>()("TodoState") {}
-export const TodoStateLive = Layer.effect(TodoState, SubscriptionRef.make<TodoStateShape>({ todos: new Map(), deleted: new Set() }))
+export interface Todo {
+  readonly id: string
+  readonly title: string
+  readonly done: boolean
+}
+export interface TodoStateShape {
+  readonly todos: ReadonlyMap<string, Todo>
+  readonly deleted: ReadonlySet<string>
+}
+export class TodoState extends Context.Service<TodoState, SubscriptionRef.SubscriptionRef<TodoStateShape>>()(
+  "TodoState"
+) {}
+export const TodoStateLive = Layer.effect(
+  TodoState,
+  SubscriptionRef.make<TodoStateShape>({ todos: new Map(), deleted: new Set() })
+)
 
 // Handlers client : LWW via conflicts (même tag + même clé) + tombstones pour les tags croisés
 export const TodoHandlersClient = EventLog.group(TodoEvents, (h) =>
   h
-    .handle("TodoAdded", ({ payload }) => TodoState.use((ref) => SubscriptionRef.update(ref, (s) =>
-      s.deleted.has(payload.id) || s.todos.has(payload.id) ? s
-        : { ...s, todos: new Map(s.todos).set(payload.id, { ...payload, done: false }) })))
-    .handle("TodoRenamed", ({ payload, conflicts }) => conflicts.length > 0 ? Effect.void :
-      TodoState.use((ref) => SubscriptionRef.update(ref, (s) => {
-        const t = s.todos.get(payload.id); if (!t || s.deleted.has(payload.id)) return s
-        return { ...s, todos: new Map(s.todos).set(t.id, { ...t, title: payload.title }) }
-      })))
-    .handle("TodoToggled", ({ payload, conflicts }) => conflicts.length > 0 ? Effect.void :
-      TodoState.use((ref) => SubscriptionRef.update(ref, (s) => {
-        const t = s.todos.get(payload.id); if (!t || s.deleted.has(payload.id)) return s
-        return { ...s, todos: new Map(s.todos).set(t.id, { ...t, done: payload.done }) }
-      })))
-    .handle("TodoDeleted", ({ payload }) => TodoState.use((ref) => SubscriptionRef.update(ref, (s) => {
-      const todos = new Map(s.todos); todos.delete(payload.id)
-      return { todos, deleted: new Set(s.deleted).add(payload.id) }
-    })))
+    .handle("TodoAdded", ({ payload }) =>
+      TodoState.use((ref) =>
+        SubscriptionRef.update(ref, (s) =>
+          s.deleted.has(payload.id) || s.todos.has(payload.id)
+            ? s
+            : { ...s, todos: new Map(s.todos).set(payload.id, { ...payload, done: false }) }
+        )
+      )
+    )
+    .handle("TodoRenamed", ({ payload, conflicts }) =>
+      conflicts.length > 0
+        ? Effect.void
+        : TodoState.use((ref) =>
+            SubscriptionRef.update(ref, (s) => {
+              const t = s.todos.get(payload.id)
+              if (!t || s.deleted.has(payload.id)) return s
+              return { ...s, todos: new Map(s.todos).set(t.id, { ...t, title: payload.title }) }
+            })
+          )
+    )
+    .handle("TodoToggled", ({ payload, conflicts }) =>
+      conflicts.length > 0
+        ? Effect.void
+        : TodoState.use((ref) =>
+            SubscriptionRef.update(ref, (s) => {
+              const t = s.todos.get(payload.id)
+              if (!t || s.deleted.has(payload.id)) return s
+              return { ...s, todos: new Map(s.todos).set(t.id, { ...t, done: payload.done }) }
+            })
+          )
+    )
+    .handle("TodoDeleted", ({ payload }) =>
+      TodoState.use((ref) =>
+        SubscriptionRef.update(ref, (s) => {
+          const todos = new Map(s.todos)
+          todos.delete(payload.id)
+          return { todos, deleted: new Set(s.deleted).add(payload.id) }
+        })
+      )
+    )
 )
 
 // Handlers serveur : obligatoires pour EventLogServerUnencrypted.layer ; ne doivent pas échouer
 export const TodoHandlersServer = EventLog.group(TodoEvents, (h) =>
-  h.handle("TodoAdded", () => Effect.void)
-   .handle("TodoRenamed", () => Effect.void)
-   .handle("TodoToggled", () => Effect.void)
-   .handle("TodoDeleted", () => Effect.void))
+  h
+    .handle("TodoAdded", () => Effect.void)
+    .handle("TodoRenamed", () => Effect.void)
+    .handle("TodoToggled", () => Effect.void)
+    .handle("TodoDeleted", () => Effect.void)
+)
 ```
 
 ```ts
@@ -291,9 +350,9 @@ const ALLOWED = new Set([process.env.ALICE_PUBLIC_KEY!, process.env.BOB_PUBLIC_K
 const deny = (publicKey: string) => Effect.fail(new S.EventLogServerAuthError({ reason: "Forbidden", publicKey }))
 
 const AuthLive = Layer.succeed(S.EventLogServerAuthorization, {
-  authorizeIdentity: ({ publicKey }) => ALLOWED.has(publicKey) ? Effect.void : deny(publicKey),
-  authorizeRead:     ({ publicKey }) => ALLOWED.has(publicKey) ? Effect.void : deny(publicKey),
-  authorizeWrite:    ({ publicKey }) => ALLOWED.has(publicKey) ? Effect.void : deny(publicKey)
+  authorizeIdentity: ({ publicKey }) => (ALLOWED.has(publicKey) ? Effect.void : deny(publicKey)),
+  authorizeRead: ({ publicKey }) => (ALLOWED.has(publicKey) ? Effect.void : deny(publicKey)),
+  authorizeWrite: ({ publicKey }) => (ALLOWED.has(publicKey) ? Effect.void : deny(publicKey))
 })
 
 const ServerLive = S.layer(TodoSchema, TodoHandlersServer).pipe(
@@ -319,31 +378,34 @@ import { TodoHandlersClient, TodoSchema, TodoState, TodoStateLive } from "@lab/s
 const makeClientLayer = (identity: EventLog.Identity["Service"]) =>
   EventLog.layer(TodoSchema, TodoHandlersClient).pipe(
     Layer.provideMerge(TodoStateLive),
-    Layer.provide(EventJournal.layerMemory),           // navigateur : EventJournal.layerIndexedDb({ database: "alice" })
+    Layer.provide(EventJournal.layerMemory), // navigateur : EventJournal.layerIndexedDb({ database: "alice" })
     Layer.provide(Layer.succeed(EventLog.Identity, identity))
   )
 
 const RemoteLive = EventLogRemote.layerUnencrypted.pipe(
   Layer.provide(RpcClient.layerProtocolSocket({ retryTransientErrors: true })),
-  Layer.provide(Layer.mergeAll(
-    NodeSocket.layerWebSocket("ws://localhost:3000"),  // navigateur : Socket.layerWebSocket(url) + Socket.layerWebSocketConstructorGlobal
-    RpcSerialization.layerJson
-  ))
+  Layer.provide(
+    Layer.mergeAll(
+      NodeSocket.layerWebSocket("ws://localhost:3000"), // navigateur : Socket.layerWebSocket(url) + Socket.layerWebSocketConstructorGlobal
+      RpcSerialization.layerJson
+    )
+  )
 )
 
 // "en ligne" = un Scope vivant contenant le remote ; "hors-ligne" = Scope fermé
-const goOnline = Effect.gen(function*() {
+const goOnline = Effect.gen(function* () {
   const scope = yield* Scope.make()
-  yield* Layer.buildWithScope(RemoteLive, scope)       // requiert EventLog.Registry dans le contexte courant
+  yield* Layer.buildWithScope(RemoteLive, scope) // requiert EventLog.Registry dans le contexte courant
   return scope
 })
 const goOffline = (scope: Scope.Closeable) => Scope.close(scope, Exit.void)
 
-const client = (identity: EventLog.Identity["Service"]) => Effect.gen(function*() {
-  const write = yield* EventLog.makeClient(TodoSchema)
-  const state = yield* TodoState
-  return { write, state, goOnline, goOffline, snapshot: SubscriptionRef.get(state) }
-}).pipe(Effect.provide(makeClientLayer(identity)))   // garder le scope ouvert pendant tout le scénario
+const client = (identity: EventLog.Identity["Service"]) =>
+  Effect.gen(function* () {
+    const write = yield* EventLog.makeClient(TodoSchema)
+    const state = yield* TodoState
+    return { write, state, goOnline, goOffline, snapshot: SubscriptionRef.get(state) }
+  }).pipe(Effect.provide(makeClientLayer(identity))) // garder le scope ouvert pendant tout le scénario
 
 // Scénario 2 (esquisse) :
 //   alice.goOnline ; bob.goOnline ; alice.write("TodoAdded", { id: "t1", title: "Pain" })

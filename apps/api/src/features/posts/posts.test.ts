@@ -7,7 +7,7 @@
  * Run with `pnpm --filter @effect_lab/api test`.
  */
 import assert from "node:assert/strict"
-import { Cause, Effect, Exit, Layer } from "effect"
+import { Cause, Data, Effect, Exit, Layer } from "effect"
 import { HttpServer } from "effect/http"
 import { HttpApiTest } from "effect/http-api"
 import { Api } from "@effect_lab/shared"
@@ -21,7 +21,10 @@ const makeClient = HttpApiTest.groups(Api, ["posts"])
 type Client = Effect.Success<typeof makeClient>
 type Test = (client: Client) => Effect.Effect<void, unknown>
 
-// biome-ignore format: la table se lit comme de la prose, un tuple ["ce que ça prouve", () => { … }] par entrée. Le formatteur éclate chaque tuple sur cinq lignes et noie l'énoncé ; aucune option ne garde la forme compacte.
+// La table se lit comme de la prose : un tuple ["ce que ça prouve", () => { … }]
+// par entrée. Le formatteur éclate chaque tuple sur cinq lignes et noie
+// l'énoncé ; aucune option ne garde la forme compacte.
+// oxfmt-ignore
 const tests: Array<[string, Test]> = [
   ["GET /posts returns the seeded posts", (client) =>
     Effect.gen(function*() {
@@ -141,6 +144,16 @@ const runOne = (name: string, test: Test) =>
     })
   )
 
+/**
+ * Un `Error` global fond tous les échecs non tagués dans le même canal
+ * d'erreur et fait perdre le typage ; le compte est porté par le payload.
+ */
+class TestsFailed extends Data.TaggedError("TestsFailed")<{ readonly failed: number }> {
+  override get message() {
+    return `${this.failed} test(s) failed`
+  }
+}
+
 const main = Effect.gen(function* () {
   const results: Array<boolean> = []
   for (const [name, test] of tests) {
@@ -149,7 +162,7 @@ const main = Effect.gen(function* () {
   const passed = results.filter(Boolean).length
   console.log(`\n${passed}/${results.length} passed`)
   if (passed !== results.length) {
-    return yield* Effect.fail(new Error(`${results.length - passed} test(s) failed`))
+    return yield* new TestsFailed({ failed: results.length - passed })
   }
 })
 

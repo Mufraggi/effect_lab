@@ -101,6 +101,9 @@ export interface JournalEvent {
  */
 export const foldTodoEvents = (events: ReadonlyArray<JournalEvent>): TodoStateShape =>
   [...events]
+    // Le spread construit l'estampille sans toucher à l'événement d'origine :
+    // la projection doit rester pure, le journal est relu à chaque fold.
+    // oxlint-disable-next-line oxc/no-map-spread
     .map((e) => ({ ...e, stamp: stampOf(e.event, e.entryId) }))
     .sort((a, b) => compareStamps(a.stamp, b.stamp))
     .reduce(

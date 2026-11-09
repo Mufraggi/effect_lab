@@ -114,7 +114,7 @@ export type Pokemon = typeof Pokemon.Type
 
 /** A numeric cell ("45") decoded into the branded integer `to`. */
 const intCell = <S extends Schema.Constraint & { readonly Encoded: number }>(to: S) =>
-  Schema.NumberFromString.pipe(Schema.decodeTo(to))
+  Schema.FiniteFromString.pipe(Schema.decodeTo(to))
 
 /** `Type 2`: the empty cell means "no secondary type". */
 const SecondaryTypeCell = Schema.Union([Schema.Literal(""), PokemonType]).pipe(

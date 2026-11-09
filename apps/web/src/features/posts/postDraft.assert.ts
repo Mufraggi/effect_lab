@@ -25,7 +25,10 @@ const post: Post = {
 /** The form opened on `post`, so the draft and its seed are the same value. */
 const untouched = { edited: post, from: post }
 
-// biome-ignore format: la table se lit comme de la prose, un tuple ["ce que ça prouve", () => { … }] par entrée. Le formatteur éclate chaque tuple sur cinq lignes et noie l'énoncé ; aucune option ne garde la forme compacte.
+// La table se lit comme de la prose : un tuple ["ce que ça prouve", () => { … }]
+// par entrée. Le formatteur éclate chaque tuple sur cinq lignes et noie
+// l'énoncé ; aucune option ne garde la forme compacte.
+// oxfmt-ignore
 const tests: ReadonlyArray<Test> = [
   ["a field nobody touched takes the incoming value", () => {
     const next = { ...post, title: "FROM THE LIST" }

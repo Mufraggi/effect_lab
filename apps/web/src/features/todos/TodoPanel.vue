@@ -19,9 +19,7 @@ const lists = useAtomValue(() => listsQuery(publicKey))
 const create = useMutation(() => createList)
 const join = useMutation(() => joinList)
 
-const available = computed<ReadonlyArray<TodoList>>(() =>
-  AsyncResult.isSuccess(lists.value) ? lists.value.value : []
-)
+const available = computed<ReadonlyArray<TodoList>>(() => (AsyncResult.isSuccess(lists.value) ? lists.value.value : []))
 
 /** `USelect` veut `{ label, value }` ; la source reste `available`. */
 const listItems = computed(() => available.value.map((list) => ({ label: list.name, value: list.id })))
@@ -100,19 +98,12 @@ const enter = async () => {
     <!-- Le serveur ne donne le code qu'une fois, à la création : il disparaît au
          rechargement, donc à partager avant. -->
     <UAlert v-if="inviteCode" color="info" variant="subtle" icon="i-lucide-key-round">
-      <template #description>
-        Code d'invitation : <span class="font-mono">{{ inviteCode }}</span>
-      </template>
+      <template #description> Code d'invitation : <span class="font-mono">{{ inviteCode }}</span> </template>
     </UAlert>
 
     <form @submit.prevent="add">
       <UFieldGroup class="w-full">
-        <UInput
-          v-model="newName"
-          placeholder="Nouvelle liste"
-          aria-label="nouvelle liste"
-          class="flex-1 min-w-0"
-        />
+        <UInput v-model="newName" placeholder="Nouvelle liste" aria-label="nouvelle liste" class="flex-1 min-w-0" />
         <!-- `loading` désactive aussi le bouton : l'invariant du `disabled` est tenu. -->
         <UButton type="submit" :loading="create.pending.value">Créer</UButton>
       </UFieldGroup>
@@ -125,9 +116,7 @@ const enter = async () => {
           aria-label="code d'invitation"
           class="flex-1 min-w-0"
         />
-        <UButton type="submit" color="neutral" variant="subtle" :loading="join.pending.value">
-          Rejoindre
-        </UButton>
+        <UButton type="submit" color="neutral" variant="subtle" :loading="join.pending.value"> Rejoindre </UButton>
       </UFieldGroup>
     </form>
 
@@ -138,27 +127,10 @@ const enter = async () => {
       title="Listes indisponibles"
       role="alert"
     />
-    <UAlert
-      v-if="create.error.value"
-      color="error"
-      variant="subtle"
-      :description="create.error.value"
-      role="alert"
-    />
-    <UAlert
-      v-if="join.error.value"
-      color="error"
-      variant="subtle"
-      :description="join.error.value"
-      role="alert"
-    />
+    <UAlert v-if="create.error.value" color="error" variant="subtle" :description="create.error.value" role="alert" />
+    <UAlert v-if="join.error.value" color="error" variant="subtle" :description="join.error.value" role="alert" />
 
     <TodoListView v-if="client && current" :key="current.id" :client="client" />
-    <UEmpty
-      v-else
-      icon="i-lucide-list-todo"
-      title="Aucune liste"
-      description="Créez une liste ou rejoignez-en une."
-    />
+    <UEmpty v-else icon="i-lucide-list-todo" title="Aucune liste" description="Créez une liste ou rejoignez-en une." />
   </UCard>
 </template>

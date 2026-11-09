@@ -44,7 +44,10 @@ const posts: ReadonlyArray<Post> = [
   }
 ]
 
-// biome-ignore format: la table se lit comme de la prose, un tuple ["ce que ça prouve", () => { … }] par entrée. Le formatteur éclate chaque tuple sur cinq lignes et noie l'énoncé ; aucune option ne garde la forme compacte.
+// La table se lit comme de la prose : un tuple ["ce que ça prouve", () => { … }]
+// par entrée. Le formatteur éclate chaque tuple sur cinq lignes et noie
+// l'énoncé ; aucune option ne garde la forme compacte.
+// oxfmt-ignore
 const tests: Array<[string, () => void]> = [
   ["refine filters: an id that matches nothing focuses nothing", () => {
     assert.deepEqual(Optic.getAll(_titleById(2))(posts), ["B"])

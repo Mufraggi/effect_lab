@@ -11,10 +11,9 @@ const bob = loadIdentity("bob")
   <section class="grid gap-6">
     <UPageHeader title="Todos">
       <template #description>
-        Deux clients EventLog, chacun avec sa propre clé. Créez une liste d'un
-        côté, rejoignez-la de l'autre avec son code d'invitation. Passez l'un
-        hors ligne, modifiez des deux côtés, puis reconnectez : le renommage
-        écrit en dernier gagne, et une todo supprimée le reste.
+        Deux clients EventLog, chacun avec sa propre clé. Créez une liste d'un côté, rejoignez-la de l'autre avec son
+        code d'invitation. Passez l'un hors ligne, modifiez des deux côtés, puis reconnectez : le renommage écrit en
+        dernier gagne, et une todo supprimée le reste.
       </template>
     </UPageHeader>
 

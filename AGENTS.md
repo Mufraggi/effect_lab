@@ -9,33 +9,99 @@ Read `docs/README.md` inside that installed package first, then read the relevan
 This block is written and re-added by `turbo` before repository-scoped commands when an AI agent is detected. In the Turborepo source repository, its template is defined in `crates/turborepo-cli/src/cli/agent_guidance.rs`. Removing the managed block while updates are enabled means a later qualifying invocation will add it again. Set `"agentGuidance": false` in the root `turbo.json` or `turbo.jsonc` to opt out; this does not remove an existing block. Keep the block committed with your work to avoid an uncommitted change on the next agent invocation.
 <!-- END:turborepo-agent-rules -->
 
-# Lint et format : Biome
+# Lint et format : Oxlint et oxfmt
 
-Biome est la seule source de vérité pour le lint **et** le format. La config
-tient dans `biome.jsonc` à la racine, et nulle part ailleurs — pas de config
-par package, pas de tâche `lint` dans `turbo.json` (Biome parcourt le
-workspace lui-même, et la tâche recréerait le no-op qui avait justifié son
+Biome a été retiré. Deux binaires le remplacent, parce qu'Oxlint ne formate
+pas :
+
+- **lint** — Oxlint, config dans `.oxlintrc.json`. Il porte à la fois le lint
+  généraliste (ce que faisait Biome) et les règles type-aware d'Effect, via
+  le plugin `effecttsgo`.
+- **format** — oxfmt, config dans `.oxfmtrc.json`.
+
+Les deux configs tiennent à la racine et nulle part ailleurs : pas de config
+par package, pas de tâche `lint` dans `turbo.json` (les deux parcourent le
+workspace eux-mêmes, et la tâche recréerait le no-op qui avait justifié son
 retrait).
 
-- `pnpm check` corrige lint + format sur place.
-- `pnpm biome ci .` est exactement ce que lance la CI : format, lint **et**
-  actions d'assist, sans écrire. `biome format` et `biome lint` pris
-  séparément ne couvrent pas l'assist — une passe verte sur les deux peut
-  donc encore échouer en CI.
+- `pnpm lint` / `pnpm format` séparément, `pnpm check` corrige les deux sur
+  place.
+- `pnpm verify` est exactement ce que lance la CI : `oxfmt --check` puis
+  Oxlint, sans écrire.
 
-Ne pas relever la version de Biome sans intention : elle est épinglée exacte
-(pas de `^`) parce que la sortie du formatteur peut changer en minor, et un
-bump silencieux repeindrait le repo au prochain `pnpm install`.
+Le lint passe par `effect-tsgo oxlint`, **jamais** par `oxlint` nu : le
+plugin `effecttsgo` n'existe que dans le binding patché que fournit
+`effect-tsgo`, et un `oxlint` nu sort en erreur sur `.oxlintrc.json` (code 1,
+"Unknown plugin"). Ça vaut aussi pour une extension d'éditeur qui lancerait
+le binaire d'origine ; pour ce cas il existe `effect-tsgo patch`, qui réécrit
+`node_modules` et n'est pas appliqué ici.
 
-Trois désactivations sont délibérées, chacune commentée sur place. Ne pas les
+Les versions d'oxfmt, d'Oxlint, d'`oxlint-tsgolint` et de `@effect/tsgo` sont
+épinglées **exactes**, pour deux raisons distinctes. Celle d'oxfmt parce que
+la sortie d'un formatteur peut changer en minor et repeindre le repo au
+prochain `pnpm install` — d'autant qu'oxfmt est en 0.x. Celles des trois
+autres parce que `@effect/tsgo` déclare une liste fermée de versions qu'il
+sait patcher (ici Oxlint 1.88→1.92, tsgolint 7.0.2004→7.0.2006) ; monter
+l'une des trois veut dire vérifier le tableau du README de `@effect/tsgo`.
+
+Les désactivations délibérées, chacune commentée sur place. Ne pas les
 retirer sans lire le commentaire :
 
-- `useIterableCallbackReturn` (`biome.jsonc`) — `Optic.forEach` n'est pas
-  `Array#forEach`.
-- `organizeImports` (`biome.jsonc`) — l'ordre des imports est sémantique, et
-  l'organiseur trie jusqu'aux `export *` du barrel de `packages/shared`.
-- `// biome-ignore format` sur les sept tables de tests — le formatteur éclate
-  chaque `["ce que ça prouve", () => { … }]` sur cinq lignes.
+- Les catégories `suspicious`, `pedantic` et `style` (`.oxlintrc.json`) —
+  `suspicious` active `no-underscore-dangle`, frontalement incompatible avec
+  `_tag` (le discriminant d'Effect) et avec la convention de nommage des
+  optics. Elle produisait 18 signalements, tous faux.
+- `effecttsgo/any-unknown-in-error-context` (`.oxlintrc.json`) — les
+  catégories d'Oxlint ne distinguent pas les plugins, donc `correctness`
+  promeut aussi des règles Effect que le preset `recommended` laissait de
+  côté. Remise où le preset la mettait.
+- `effecttsgo/unstable-api-usage` et `experimental-api-usage` — presque tout
+  `effect/http-api`, `effect/eventlog` et `effect/sql` est marqué instable en
+  v4 : ~70 signalements sur du code normal.
+- `// oxfmt-ignore` sur les sept tables de tests — le formatteur éclate
+  chaque `["ce que ça prouve", () => { … }]` sur cinq lignes. C'est l'ancien
+  `// biome-ignore format` ; oxfmt ne comprend pas cette forme-là, et les
+  renommer est ce qui a ramené le repaint de la bascule de ~1850 lignes à
+  ~270.
+
+Ce qu'oxfmt ne couvre pas, et que Biome couvrait : `apps/web/index.html` et
+`apps/web/src/assets/css/main.css`. Ces deux fichiers ne sont plus formatés
+par personne.
+
+# Le LSP Effect, et les règles Effect via Oxlint
+
+Deux outils, parce qu'ils ne tournent pas au même moment et qu'aucun ne
+couvre ce que fait l'autre.
+
+**Dans l'éditeur** : `@effect/language-service`, déclaré une seule fois dans
+`tsconfig.lsp.json` à la racine, que les six `tsconfig.json` `extends`. Ce
+fichier n'est pas une base commune — le front est en `bundler`/`noEmit` et le
+reste en `NodeNext` avec émission, ils n'ont rien à partager — il ne porte
+que le plugin, pour que la config LSP tienne à un endroit. Il apporte aussi
+les refactors (async → `Effect.gen`, Layer Magic, pipe ↔ datafirst) que la
+ligne de commande ne donne pas.
+
+Sous WebStorm il faut avoir sélectionné le TypeScript du workspace dans
+Settings → Languages & Frameworks → TypeScript, sinon le plugin n'est jamais
+chargé et rien ne remonte. `tsc` non plus ne charge pas les plugins : aucun
+de ces diagnostics n'apparaît dans `pnpm typecheck` ni en CI.
+
+**En ligne de commande** : `pnpm lint`, qui est le même Oxlint que pour le
+reste du lint — les règles Effect y sont un plugin parmi les autres. Jeu de
+règles et configuration dans `.oxlintrc.json`.
+
+Pourquoi un second package (`@effect/tsgo`) à côté du LSP : son jeu de règles
+est nettement en avance. Les 16 règles de réécriture de novembre 2026
+(`mapBoth`, `fromResult`, `catchNoSuchElement`, `failSync`, `isSuccess`…)
+sont dans `@effect/tsgo` et absentes de `@effect/language-service@0.87.5`.
+`@effect/tsgo` vise TypeScript 7, mais il embarque ses propres builds
+patchés : rien n'oblige à migrer le repo, qui reste en TS 5.9.
+
+Le repo est **à zéro signalement**, Effect compris. Les règles généralistes
+(`correctness`, `perf`) sont en `error` et font échouer la CI ; les règles
+Effect sont en `warning` et ne la font pas échouer. Maintenant que le compte
+est à zéro, `--deny-warnings` rendrait les secondes bloquantes elles aussi —
+le pas restant pour que la CI tienne le zéro plutôt que de le constater.
 
 # Build avant typecheck
 

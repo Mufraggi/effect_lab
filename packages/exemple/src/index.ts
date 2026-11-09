@@ -1,9 +1,12 @@
 import { Effect, Schema } from "effect"
 
-export class ValidationError extends Schema.TaggedError<ValidationError>()("ValidationError", {
-  field: Schema.String,
-  message: Schema.String
-}) {}
+export class ValidationError extends Schema.TaggedError<ValidationError, { readonly brand: unique symbol }>()(
+  "ValidationError",
+  {
+    field: Schema.String,
+    message: Schema.String
+  }
+) {}
 
 const DecodedPost = Schema.Struct({
   title: Schema.String,

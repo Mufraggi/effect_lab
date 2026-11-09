@@ -16,11 +16,11 @@ Scripts d'import ponctuels, lancés à la main contre la base de l'API
 
 Le CSV est dénormalisé, la base ne l'est pas :
 
-| Table             | Une ligne par…              | Clé naturelle (upsert)   |
-| ----------------- | --------------------------- | ------------------------ |
-| `pokemon_species` | numéro de Pokédex           | `pokedex_number`         |
-| `pokemon`         | ligne du CSV (une forme)    | `name`                   |
-| `pokemon_types`   | type d'une forme (slot 1/2) | `(pokemon_id, slot)`     |
+| Table             | Une ligne par…              | Clé naturelle (upsert) |
+| ----------------- | --------------------------- | ---------------------- |
+| `pokemon_species` | numéro de Pokédex           | `pokedex_number`       |
+| `pokemon`         | ligne du CSV (une forme)    | `name`                 |
+| `pokemon_types`   | type d'une forme (slot 1/2) | `(pokemon_id, slot)`   |
 
 Les tables viennent de la migration `0002_pokemon` de `packages/db`.
 `total` est une colonne générée (somme des six stats), et les types sont un
@@ -33,12 +33,14 @@ donne le corps de la réponse en flux d'octets, qu'on fait passer dans le
 channel `Csv.decodeSchema` d'`effect/encoding`.
 
 ```ts
-const pokemons = client.get(url).pipe(
-  HttpClientResponse.stream,
-  Stream.pipeThroughChannel(
-    Csv.decodeSchema(PokemonCsvRow)({ headers: true, ignoreEmptyLines: true, disableCodecs: true })
+const pokemons = client
+  .get(url)
+  .pipe(
+    HttpClientResponse.stream,
+    Stream.pipeThroughChannel(
+      Csv.decodeSchema(PokemonCsvRow)({ headers: true, ignoreEmptyLines: true, disableCodecs: true })
+    )
   )
-)
 ```
 
 `disableCodecs: true` : `PokemonCsvRow` décode déjà depuis des chaînes

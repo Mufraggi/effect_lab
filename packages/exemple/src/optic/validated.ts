@@ -65,7 +65,10 @@ const assertEqual = (actual: unknown, expected: unknown, note: string) => {
   }
 }
 
-// biome-ignore format: la table se lit comme de la prose, un tuple ["ce que ça prouve", () => { … }] par entrée. Le formatteur éclate chaque tuple sur cinq lignes et noie l'énoncé ; aucune option ne garde la forme compacte.
+// La table se lit comme de la prose : un tuple ["ce que ça prouve", () => { … }]
+// par entrée. Le formatteur éclate chaque tuple sur cinq lignes et noie
+// l'énoncé ; aucune option ne garde la forme compacte.
+// oxfmt-ignore
 const tests: Array<[string, () => void]> = [
   ["a satisfied check reads like any other optic", () => {
     assertEqual(Result.isSuccess(_validPort.getResult(config)), true, "8080 is a valid port")
@@ -118,7 +121,7 @@ const tests: Array<[string, () => void]> = [
 
     const fromOptic = Optic.id<Config>().key("server").key("port").check(isPort)
       .getResult({ ...config, server: { ...config.server, port: 99999 } })
-    const fromDecode = decodeResult(Schema.Number.check(isPort))(99999)
+    const fromDecode = decodeResult(Schema.Finite.check(isPort))(99999)
 
     assertEqual(Result.isFailure(fromOptic), true, "the optic refused")
     assertEqual(Result.isFailure(fromDecode), true, "the schema refused")

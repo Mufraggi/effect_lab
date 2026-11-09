@@ -58,29 +58,29 @@ de `apps/web/vite.config.ts` en développement.
 
 La page `/todos` fait tourner deux clients EventLog complets, Alice et Bob : chacun a son identité, son journal IndexedDB et son WebSocket. Le bouton « Passer hors ligne » ferme le scope qui tient la connexion, et la reconnexion envoie ce qui a été écrit entre-temps.
 
-| Ce que ça montre | Où |
-| --- | --- |
+| Ce que ça montre                                                                                                                                 | Où                                                                                              |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
 | Les events, la projection, la résolution des conflits (dernier écrivain gagne par champ, comparé sur l'id d'entrée, et marqueurs de suppression) | `packages/shared/src/todos/` (contrat) et `apps/web/src/features/todos/` (projection, handlers) |
-| Le serveur de synchro, persistant dans Postgres (une seule instance), monté sur le routeur HTTP de l'API | `apps/api/src/features/todos/eventlog.ts` |
-| En ligne = un atom qui tient le remote ; une factory d'atoms par utilisateur | `apps/web/src/features/todos/todoClient.ts` |
-| La recherche, sourcée dans le code d'effect 4.0.2 | `docs/research/effect-v4-eventlog.md` |
+| Le serveur de synchro, persistant dans Postgres (une seule instance), monté sur le routeur HTTP de l'API                                         | `apps/api/src/features/todos/eventlog.ts`                                                       |
+| En ligne = un atom qui tient le remote ; une factory d'atoms par utilisateur                                                                     | `apps/web/src/features/todos/todoClient.ts`                                                     |
+| La recherche, sourcée dans le code d'effect 4.0.2                                                                                                | `docs/research/effect-v4-eventlog.md`                                                           |
 
 ## Les optics, et où les regarder
 
 Les optics feuilles vivent dans `packages/shared/src/optics.ts` et **nulle part ailleurs**. Le back les compose sous son store, le front sous la liste en cache. C'est le point de l'article : un optic est une valeur, donc il se transporte et se recompose.
 
-| Ce que ça montre | Où |
-| --- | --- |
-| Une table `[optic, lecteur]` qui applique un patch partiel — ajouter un champ = une ligne | `packages/shared/src/optics.ts` (`patchFields`) |
-| `refine` pour adresser un post **par id**, sans index | `optics.ts` (`_postById`, `_titleById`) |
-| Une traversal qui réécrit un tag sur toute la collection, **tag par tag** | `apps/api/src/features/posts/repo.ts` (`retag`) |
-| `flatten` : franchir **deux niveaux de tableau**, que `forEach` ne traverse pas | `optics.ts` (`flatten`, `_everyTag`) |
-| `optionalKey` : écrire `undefined` **supprime** la clé | `optics.ts` (`reconcilePublication`) |
-| L'optic comme **reducer optimiste** — il décrit où l'édition atterrit dans le cache | `apps/web/src/features/posts/posts.ts` |
-| L'optic passé en **paramètre** : un helper, tous les champs, toutes les profondeurs | `apps/web/src/shared/opticField.ts` |
-| Une table `[optic]` qui **rebase** un brouillon sur l'état serveur, champ par champ | `apps/web/src/shared/rebase.ts` + `features/posts/postDraft.ts` |
-| Traversal sur **deux niveaux de tableau** imbriqués, et le filtre dans le chemin | `packages/exemple/src/optic/nestedTraversal.ts` |
-| Un optic qui **échoue à focaliser** : `check`, `getResult`, et l'`Issue` partagée avec `Schema` | `packages/exemple/src/optic/validated.ts` |
+| Ce que ça montre                                                                                | Où                                                              |
+| ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Une table `[optic, lecteur]` qui applique un patch partiel — ajouter un champ = une ligne       | `packages/shared/src/optics.ts` (`patchFields`)                 |
+| `refine` pour adresser un post **par id**, sans index                                           | `optics.ts` (`_postById`, `_titleById`)                         |
+| Une traversal qui réécrit un tag sur toute la collection, **tag par tag**                       | `apps/api/src/features/posts/repo.ts` (`retag`)                 |
+| `flatten` : franchir **deux niveaux de tableau**, que `forEach` ne traverse pas                 | `optics.ts` (`flatten`, `_everyTag`)                            |
+| `optionalKey` : écrire `undefined` **supprime** la clé                                          | `optics.ts` (`reconcilePublication`)                            |
+| L'optic comme **reducer optimiste** — il décrit où l'édition atterrit dans le cache             | `apps/web/src/features/posts/posts.ts`                          |
+| L'optic passé en **paramètre** : un helper, tous les champs, toutes les profondeurs             | `apps/web/src/shared/opticField.ts`                             |
+| Une table `[optic]` qui **rebase** un brouillon sur l'état serveur, champ par champ             | `apps/web/src/shared/rebase.ts` + `features/posts/postDraft.ts` |
+| Traversal sur **deux niveaux de tableau** imbriqués, et le filtre dans le chemin                | `packages/exemple/src/optic/nestedTraversal.ts`                 |
+| Un optic qui **échoue à focaliser** : `check`, `getResult`, et l'`Issue` partagée avec `Schema` | `packages/exemple/src/optic/validated.ts`                       |
 
 > **`forEach` n'aplatit pas deux niveaux de tableau.** Sur un
 > `Traversal<S, A[]>` il te redonne le tableau, pas l'élément : un `forEach`
@@ -96,7 +96,7 @@ Les optics feuilles vivent dans `packages/shared/src/optics.ts` et **nulle part 
 > `replace` à travers un optic qui ne focalise pas te **rend l'original, sans
 > un mot**. Démontré dans `packages/exemple/src/optic/validated.ts`.
 
-> Mais ce n'est pas un mur : **un lens vers un tableau *est* une traversal sur
+> Mais ce n'est pas un mur : **un lens vers un tableau _est_ une traversal sur
 > ses éléments** (c'est pourquoi `_tags`, un `Lens<Post, ReadonlyArray<string>>`,
 > accepte `modifyAll((tag) => …)`). Il suffit donc de construire ce lens à la
 > main — lire les feuilles dans l'ordre, les réécrire dans les mêmes
@@ -107,28 +107,43 @@ Les optics feuilles vivent dans `packages/shared/src/optics.ts` et **nulle part 
 
 ## Scripts
 
-| Commande         | Description                                  |
-| ---------------- | -------------------------------------------- |
-| `pnpm dev`       | lance api + web en parallèle (turbo)         |
-| `pnpm build`     | build tous les packages/apps                 |
-| `pnpm typecheck` | vérifie les types (dont les `.vue`)          |
-| `pnpm test`      | assertions optics + tests HTTP in-memory     |
-| `pnpm lint`      | lint Biome                                   |
-| `pnpm format`    | formate tout le workspace                    |
-| `pnpm check`     | lint + format, corrections appliquées        |
+| Commande         | Description                              |
+| ---------------- | ---------------------------------------- |
+| `pnpm dev`       | lance api + web en parallèle (turbo)     |
+| `pnpm build`     | build tous les packages/apps             |
+| `pnpm typecheck` | vérifie les types (dont les `.vue`)      |
+| `pnpm test`      | assertions optics + tests HTTP in-memory |
+| `pnpm lint`      | lint Oxlint (généraliste + Effect)       |
+| `pnpm format`    | formate tout le workspace (oxfmt)        |
+| `pnpm check`     | lint + format, corrections appliquées    |
+| `pnpm verify`    | lint + format en lecture seule (la CI)   |
 
 Les tests ne dépendent d'aucun runner : `packages/shared` assère le comportement des optics avec du Node nu, `apps/api` monte l'API en mémoire via `HttpApiTest` (pas de socket ouverte), `apps/web` assère la logique de rebase du brouillon — extraite des composants exprès pour être testable sans DOM.
 
 ## Lint, format et CI
 
-Le lint et le format passent par [Biome](https://biomejs.dev), un seul binaire configuré à la racine (`biome.jsonc`). Il n'y a **pas** de tâche `lint` dans `turbo.json` : Biome parcourt le workspace lui-même, et la tâche recréerait le no-op qui avait justifié son retrait (elle existait sans qu'aucun package ne définisse de script, donc `pnpm lint` sortait en succès sans rien vérifier).
+Le lint passe par [Oxlint](https://oxc.rs) (`.oxlintrc.json`), le format par [oxfmt](https://oxc.rs/docs/guide/usage/formatter) (`.oxfmtrc.json`), tous deux configurés à la racine. Biome tenait les deux rôles jusqu'ici ; il a été retiré, et comme Oxlint ne formate pas, il a fallu deux binaires là où il y en avait un.
 
-La version de Biome est épinglée **exacte**, sans `^` : la sortie du formatteur peut changer en minor, et un caret rendrait la CI rouge sur une PR sans rapport.
+Il n'y a **pas** de tâche `lint` dans `turbo.json` : les deux parcourent le workspace eux-mêmes, et la tâche recréerait le no-op qui avait justifié son retrait (elle existait sans qu'aucun package ne définisse de script, donc `pnpm lint` sortait en succès sans rien vérifier).
 
-Trois points de la config méritent leur explication, qui est dans `biome.jsonc` :
+Les versions sont épinglées **exactes**, sans `^`. Pour oxfmt parce que la sortie d'un formatteur peut changer en minor et repeindre le repo au prochain `pnpm install` — d'autant qu'il est en 0.x. Pour Oxlint, `oxlint-tsgolint` et `@effect/tsgo` parce que ce dernier ne sait patcher qu'une liste fermée de versions des deux autres.
 
-- `useIterableCallbackReturn` est désactivée. Elle reconnaît `forEach` par son nom, or `Optic.forEach` n'est pas `Array#forEach` — son callback *doit* retourner un optic, ce que ce repo passe son temps à montrer.
-- `organizeImports` est désactivée. L'ordre des imports est sémantique ici, et l'organiseur trie jusqu'aux `export *` du barrel de `packages/shared`.
-- Les tables de tests portent un `// biome-ignore format` : le formatteur éclate chaque `["ce que ça prouve", () => { … }]` sur cinq lignes et noie l'énoncé.
+Les points de config qui méritent leur explication, et qui l'ont sur place :
 
-La CI (`.github/workflows/ci.yml`) joue `pnpm biome ci .`, puis `build`, `typecheck` et `test` — dans cet ordre, parce que les packages exposent leurs types via leur `dist` et que `@effect_lab/shared` ne se résout pas avant le build sur un clone neuf. Sur un merge dans `main`, elle publie en plus `ghcr.io/mufraggi/effect_lab-api` et `-web` (tags `latest` et `sha-<commit>`). Sur une PR les images sont construites sans être publiées, ce qui valide les Dockerfiles sans écrire dans le registre.
+- Les catégories `suspicious`, `pedantic` et `style` sont éteintes. `suspicious` active `no-underscore-dangle`, or `_tag` est le discriminant d'Effect et tous les optics de `packages/shared` sont préfixés `_` par convention — 18 signalements, tous faux.
+- Les tables de tests portent un `// oxfmt-ignore` : le formatteur éclate chaque `["ce que ça prouve", () => { … }]` sur cinq lignes et noie l'énoncé.
+- `apps/web/index.html` et `apps/web/src/assets/css/main.css` ne sont plus formatés : oxfmt ne couvre ni HTML ni CSS, là où Biome le faisait.
+
+### Les règles Effect
+
+Les règles d'Effect sont _type-aware_ — elles ont besoin du checker TypeScript. Elles arrivent par deux chemins.
+
+Dans l'éditeur, le LSP [`@effect/language-service`](https://github.com/Effect-TS/language-service) est déclaré dans `tsconfig.lsp.json` à la racine, que les six `tsconfig.json` `extends`. Il apporte les diagnostics, les quickfixes et les refactors (une fonction `async` transformée en `Effect.gen`, la composition automatique de layers, `pipe` ↔ datafirst). Sous WebStorm il faut avoir sélectionné le TypeScript du workspace, sinon le plugin n'est jamais chargé.
+
+En ligne de commande, elles sont un plugin d'Oxlint parmi les autres : `effecttsgo`, fourni par [`@effect/tsgo`](https://github.com/Effect-TS/tsgo), dont le jeu de règles est en avance sur celui du LSP — il contient les 16 règles de réécriture de novembre 2026 (`Effect.map` + `Effect.mapError` → `Effect.mapBoth`, `Effect.map(() => "x")` → `Effect.as("x")`, etc.). `@effect/tsgo` vise TypeScript 7 mais embarque ses propres builds, donc le repo reste en TS 5.9.
+
+C'est pour ce plugin que tous les scripts lancent `effect-tsgo oxlint` et jamais `oxlint` nu : `effecttsgo` n'existe que dans le binding patché, et un `oxlint` d'origine sort en erreur sur `.oxlintrc.json` plutôt que de passer en silence.
+
+Le repo est à **zéro signalement**, Effect compris. Les règles généralistes (`correctness`, `perf`) sont en `error` et font échouer la CI ; les règles Effect sont en `warning` et ne la font pas échouer. Maintenant que le compte est à zéro, `--deny-warnings` rendrait les secondes bloquantes elles aussi.
+
+La CI (`.github/workflows/ci.yml`) joue `pnpm verify`, puis `build`, `typecheck` et `test` — dans cet ordre, parce que les packages exposent leurs types via leur `dist` et que `@effect_lab/shared` ne se résout pas avant le build sur un clone neuf. Sur un merge dans `main`, elle publie en plus `ghcr.io/mufraggi/effect_lab-api` et `-web` (tags `latest` et `sha-<commit>`). Sur une PR les images sont construites sans être publiées, ce qui valide les Dockerfiles sans écrire dans le registre.

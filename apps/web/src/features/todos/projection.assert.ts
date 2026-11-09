@@ -29,6 +29,9 @@ const unchecked = at(5, { _tag: "TodoToggled", payload: { id, done: false } })
 const removed = at(6, { _tag: "TodoDeleted", payload: { id } })
 
 const hour = 3_600_000
+// `make` d'un brand `Schema` n'accède pas à `this` — la règle ne peut pas le
+// savoir et signale toute méthode détachée de son objet.
+// oxlint-disable-next-line typescript/unbound-method
 const stamp = StampMillis.make
 /** Alice's device runs an hour ahead: her entry id and her stamp say so. */
 const aliceAhead = at(2 + hour, { _tag: "TodoRenamed", payload: { id, title: "alice", at: stamp(2 + hour) } })
@@ -56,9 +59,15 @@ const run = (events: ReadonlyArray<Stamped>) => {
 const permutations = <A>(xs: ReadonlyArray<A>): Array<Array<A>> =>
   xs.length <= 1
     ? [[...xs]]
-    : xs.flatMap((x, i) => permutations([...xs.slice(0, i), ...xs.slice(i + 1)]).map((rest) => [x, ...rest]))
+    : // Générer les permutations *est* la construction de nouveaux tableaux :
+      // muter en place reviendrait à n'en produire qu'une seule.
+      // oxlint-disable-next-line oxc/no-map-spread
+      xs.flatMap((x, i) => permutations([...xs.slice(0, i), ...xs.slice(i + 1)]).map((rest) => [x, ...rest]))
 
-// biome-ignore format: la table se lit comme de la prose, un tuple ["ce que ça prouve", () => { … }] par entrée. Le formatteur éclate chaque tuple sur cinq lignes et noie l'énoncé ; aucune option ne garde la forme compacte.
+// La table se lit comme de la prose : un tuple ["ce que ça prouve", () => { … }]
+// par entrée. Le formatteur éclate chaque tuple sur cinq lignes et noie
+// l'énoncé ; aucune option ne garde la forme compacte.
+// oxfmt-ignore
 const tests: ReadonlyArray<Test> = [
   ["rename vs rename: the newer title wins, whichever arrives first", () => {
     const inOrder = run([added, renamedOld, renamedNew])

@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   check:
-    name: biome · build · typecheck · test
+    name: format · lint · build · typecheck · test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -34,10 +34,14 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Format + lint + assist en une passe, sans écrire. En premier : c'est
+      # Format (oxfmt) puis lint (Oxlint), sans écrire. En premier : c'est
       # l'étape la plus rapide et elle n'a besoin d'aucun build.
+      #
+      # Le lint passe par `effect-tsgo`, pas par le binaire `oxlint` : les
+      # règles Effect vivent dans un plugin que seul le binding patché
+      # connaît. Un `oxlint` nu échouerait sur `.oxlintrc.json`.
       - name: Format et lint
-        run: pnpm biome ci .
+        run: pnpm verify
 
       # Le build vient avant le type-check, et ce n'est pas qu'une question
       # d'ordre d'affichage : les packages exposent leurs types via leur `dist`

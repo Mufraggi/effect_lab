@@ -1,0 +1,58 @@
+{
+  "$schema": "./node_modules/@effect/tsgo/oxlint-schema.json",
+
+  // Le lint du workspace, en un seul fichier. Oxlint a remplacé Biome ici ;
+  // le format est passé à `oxfmt` (`.oxfmtrc.json`), parce qu'Oxlint ne
+  // formate pas. Pas de config par package, et toujours pas de tâche `lint`
+  // dans `turbo.json` : Oxlint parcourt le workspace lui-même, comme Biome
+  // avant lui, et la tâche recréerait le no-op qui avait justifié son retrait.
+  //
+  // À lancer par `pnpm lint`, jamais par `oxlint` nu : les règles Effect
+  // viennent du plugin `effecttsgo`, qui n'existe que dans le binding patché
+  // fourni par `effect-tsgo`. Un `oxlint` nu sort en erreur sur ce fichier
+  // (code 1, "Unknown plugin") — il ne passe pas en silence, mais il ne
+  // passe pas du tout, y compris depuis une extension d'éditeur qui lance le
+  // binaire d'origine. Pour ce cas-là il existe `effect-tsgo patch`, qui
+  // réécrit `node_modules` ; pas appliqué ici.
+
+  // Les règles Effect, type-aware, tirées du package plutôt que recopiées :
+  // elles suivent les montées de version de `@effect/tsgo` sans rien à
+  // resynchroniser. C'est ce preset qui porte les 16 règles de réécriture de
+  // novembre 2026 (`mapBoth`, `fromResult`, `catchNoSuchElement`…).
+  "extends": ["./node_modules/@effect/tsgo/oxlint-presets/recommended.json"],
+
+  "plugins": ["typescript", "unicorn", "oxc", "import", "vue", "effecttsgo"],
+
+  // `correctness` est le pendant du recommended de Biome, et sort propre sur
+  // ce repo. `perf` est là pour garder `no-accumulating-spread`, que Biome
+  // appliquait sous le nom `noAccumulatingSpread` — le repo s'en sert.
+  //
+  // Les autres catégories restent éteintes **volontairement**. `suspicious`
+  // active `no-underscore-dangle`, qui est frontalement incompatible avec ce
+  // code : `_tag` est le discriminant d'Effect, et tous les optics de
+  // `packages/shared` sont préfixés `_` par convention. Elle produisait 18
+  // signalements, tous faux.
+  "categories": {
+    "correctness": "error",
+    "perf": "error"
+  },
+
+  "ignorePatterns": ["**/dist/**", "**/.turbo/**", "**/node_modules/**"],
+
+  "rules": {
+    // Inexploitables sur Effect v4 : presque tout `effect/http-api`,
+    // `effect/eventlog` et `effect/sql` est encore marqué instable, ce qui
+    // produisait ~70 signalements sur du code parfaitement normal — assez
+    // pour noyer les vrais. À rallumer le jour où la v4 se stabilise.
+    "effecttsgo/unstable-api-usage": "off",
+    "effecttsgo/experimental-api-usage": "off",
+
+    // Les catégories ci-dessus ne distinguent pas les plugins : `correctness`
+    // promeut aussi les règles Effect rangées dans cette catégorie, y compris
+    // celles que le preset `recommended` laissait de côté. Cette règle-là en
+    // faisait partie, et la bascule Biome → Oxlint n'a pas à durcir au
+    // passage le jeu de règles Effect. On la remet où `recommended` la
+    // mettait. À rouvrir pour elle-même, pas en effet de bord.
+    "effecttsgo/any-unknown-in-error-context": "off"
+  }
+}

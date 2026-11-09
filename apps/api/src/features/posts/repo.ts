@@ -1,6 +1,12 @@
 import { Context, Effect, Layer, Ref } from "effect"
 import { _everyTag, _postById, applyPatch, NotFound, type Post, type PostPatch } from "@effect_lab/shared"
 
+/**
+ * `find` rend `Post | undefined` ; ce garde est ce qui renarrowit en `Post`
+ * au passage par `Effect.filterOrFail`, côté lecture comme côté écriture.
+ */
+const isFound = (post: Post | undefined): post is Post => post !== undefined
+
 const seed: ReadonlyArray<Post> = [
   {
     id: 1,
@@ -54,22 +60,19 @@ export class PostsRepo extends Context.Service<
       const lookup = (posts: ReadonlyArray<Post>, id: number) => posts.find((post) => post.id === id)
 
       const byId = (id: number) =>
-        Effect.flatMap(Ref.get(ref), (posts) => {
-          const found = lookup(posts, id)
-          return found === undefined ? Effect.fail(new NotFound()) : Effect.succeed(found)
-        })
+        Ref.get(ref).pipe(
+          Effect.map((posts) => lookup(posts, id)),
+          Effect.filterOrFail(isFound, () => new NotFound())
+        )
 
       // The optic earns its place on the *write*: `refine` puts the id in the
       // path, so there is no index to carry and no `map` with a ternary. The
       // read back is a plain `find` — one traversal to edit, one to answer.
       const patch = (id: number, patch: PostPatch) =>
-        Effect.flatMap(
-          Ref.modify(ref, (posts) => {
-            const next = _postById(id).modifyAll((post) => applyPatch(post, patch))(posts)
-            return [lookup(next, id), next] as const
-          }),
-          (found) => (found === undefined ? Effect.fail(new NotFound()) : Effect.succeed(found))
-        )
+        Ref.modify(ref, (posts) => {
+          const next = _postById(id).modifyAll((post) => applyPatch(post, patch))(posts)
+          return [lookup(next, id), next] as const
+        }).pipe(Effect.filterOrFail(isFound, () => new NotFound()))
 
       // One traversal renames a tag across every post, at any list length.
       //

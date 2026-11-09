@@ -1,0 +1,32 @@
+{
+  // Le format du workspace. Repris à l'identique de l'ancien `biome.jsonc`
+  // via `oxfmt --migrate=biome`, pour que la bascule ne soit pas aussi un
+  // changement de style : 2 espaces, 120 colonnes, guillemets doubles, pas
+  // de point-virgule (style Effect), pas de virgule finale.
+  //
+  // Le repaint de la bascule a porté sur 21 fichiers / ~270 lignes, et non
+  // sur tout le repo, parce que les sept tables de tests ont gardé leur
+  // directive — renommée `// oxfmt-ignore`, qu'oxfmt comprend là où il
+  // ignorait `// biome-ignore format`.
+  //
+  // Ce qu'oxfmt ne couvre pas, et que Biome couvrait : `apps/web/index.html`
+  // et `apps/web/src/assets/css/main.css`. Deux fichiers qui ne sont plus
+  // formatés par personne.
+  //
+  // La version d'oxfmt est épinglée **exacte**, pour la même raison que
+  // Biome l'était : la sortie d'un formatteur peut changer en minor et
+  // repeindre le repo au prochain `pnpm install`. Elle l'est d'autant plus
+  // qu'oxfmt est en 0.x.
+  "useTabs": false,
+  "tabWidth": 2,
+  "printWidth": 120,
+  "singleQuote": false,
+  "jsxSingleQuote": false,
+  "quoteProps": "as-needed",
+  "trailingComma": "none",
+  "semi": false,
+  "arrowParens": "always",
+  "bracketSameLine": false,
+  "bracketSpacing": true,
+  "ignorePatterns": ["**/dist", "**/.turbo", "pnpm-lock.yaml"]
+}

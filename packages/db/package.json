@@ -2,16 +2,16 @@
   "name": "@effect_lab/db",
   "private": true,
   "type": "module",
-  "scripts": {
-    "build": "tsc",
-    "typecheck": "tsc --noEmit",
-    "db:migrate": "tsx --env-file-if-exists=../../.env src/bin/migrate.ts"
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "tsx --env-file-if-exists=../../.env src/bin/migrate.ts"
   },
   "dependencies": {
     "@effect/platform-node": "4.1.2",
