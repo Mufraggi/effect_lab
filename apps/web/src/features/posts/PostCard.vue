@@ -23,19 +23,14 @@ const emit = defineEmits<{ editTitle: [title: string]; edit: [] }>()
     <p class="my-2">{{ post.body }}</p>
     <div class="flex flex-wrap items-center gap-1.5 text-sm text-muted">
       <span>par {{ post.author.name }}</span>
-      <UBadge
-        variant="subtle"
-        :color="post.meta.visibility === 'public' ? 'success' : 'warning'"
-      >
+      <UBadge variant="subtle" :color="post.meta.visibility === 'public' ? 'success' : 'warning'">
         {{ post.meta.visibility }}
       </UBadge>
       <UBadge v-for="tag in post.tags" :key="tag" color="neutral" variant="subtle">{{ tag }}</UBadge>
     </div>
 
     <template #footer>
-      <UButton icon="i-lucide-pencil" variant="subtle" size="sm" @click="emit('edit')">
-        Éditer
-      </UButton>
+      <UButton icon="i-lucide-pencil" variant="subtle" size="sm" @click="emit('edit')"> Éditer </UButton>
     </template>
   </UCard>
 </template>

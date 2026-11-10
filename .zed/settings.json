@@ -1,0 +1,28 @@
+{
+  // Config Zed du projet. Elle n'existe que pour une raison : charger le LSP
+  // Effect déclaré dans `tsconfig.lsp.json`.
+  //
+  // Zed passe par vtsls pour TS/TSX/JS, et vtsls démarre sur le TypeScript
+  // qu'il embarque. Or un tsserver qui n'est pas celui du projet ne résout
+  // pas `@effect/language-service` depuis `node_modules`, donc il ignore
+  // silencieusement le bloc `plugins` du tsconfig : aucun diagnostic Effect,
+  // aucun quickfix, aucun refactor, et rien qui signale que ça ne marche pas.
+  //
+  // `autoUseWorkspaceTsdk` bascule vtsls sur le TypeScript du workspace
+  // (`node_modules/typescript`), qui lui trouve le plugin. Effet de bord
+  // souhaitable : l'éditeur et `pnpm typecheck` tournent alors sur la même
+  // version de TS (5.9), au lieu de diverger en silence.
+  //
+  // L'équivalent JetBrains est manuel (Settings → Languages & Frameworks →
+  // TypeScript → version du workspace) et ne peut pas être commité : il vit
+  // dans `.idea/`, qui est gitignoré.
+  "lsp": {
+    "vtsls": {
+      "settings": {
+        "vtsls": {
+          "autoUseWorkspaceTsdk": true
+        }
+      }
+    }
+  }
+}

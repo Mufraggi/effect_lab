@@ -2,16 +2,16 @@
   "name": "@effect_lab/shared",
   "private": true,
   "type": "module",
-  "scripts": {
-    "build": "tsc",
-    "typecheck": "tsc --noEmit",
-    "test": "tsc && node dist/optics.assert.js"
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "tsc && node dist/optics.assert.js"
   },
   "dependencies": {
     "effect": "4.1.2"

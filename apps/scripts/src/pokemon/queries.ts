@@ -14,13 +14,15 @@ import { PokedexNumber, PokemonName, PokemonType } from "./schema.js"
 export const StatsByType = Schema.Struct({
   type: PokemonType,
   count: Schema.Int,
-  hp: Schema.Number,
-  attack: Schema.Number,
-  defense: Schema.Number,
-  specialAttack: Schema.Number,
-  specialDefense: Schema.Number,
-  speed: Schema.Number,
-  total: Schema.Number
+  // Des moyennes SQL (`AVG`) : réelles mais toujours finies, d'où `Finite`
+  // plutôt que `Number`.
+  hp: Schema.Finite,
+  attack: Schema.Finite,
+  defense: Schema.Finite,
+  specialAttack: Schema.Finite,
+  specialDefense: Schema.Finite,
+  speed: Schema.Finite,
+  total: Schema.Finite
 })
 
 export const statsByType = Effect.gen(function* () {
@@ -49,7 +51,7 @@ export const TypePair = Schema.Struct({
   primary: PokemonType,
   secondary: PokemonType,
   count: Schema.Int,
-  total: Schema.Number
+  total: Schema.Finite
 })
 
 export const strongestTypePairs = (limit: number) =>

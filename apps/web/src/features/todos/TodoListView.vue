@@ -105,33 +105,20 @@ const remove = (todo: Todo) => write({ _tag: "TodoDeleted", payload: { id: todo.
         <UBadge :color="statusColor" variant="subtle" class="me-auto">{{ status }}</UBadge>
         <!-- C'est un état qu'on manipule, pas une action : l'interrupteur dit
              mieux ce que fait `client.online`. -->
-        <USwitch
-          :model-value="online"
-          label="En ligne"
-          @update:model-value="setOnline($event)"
-        />
+        <USwitch :model-value="online" label="En ligne" @update:model-value="setOnline($event)" />
       </div>
     </template>
 
     <form @submit.prevent="add">
       <UFieldGroup class="w-full">
-        <UInput
-          v-model="title"
-          placeholder="Nouvelle todo"
-          aria-label="nouvelle todo"
-          class="flex-1 min-w-0"
-        />
+        <UInput v-model="title" placeholder="Nouvelle todo" aria-label="nouvelle todo" class="flex-1 min-w-0" />
         <UButton type="submit" icon="i-lucide-plus">Ajouter</UButton>
       </UFieldGroup>
     </form>
 
     <ul class="grid gap-1.5">
       <li v-for="todo in todos" :key="todo.id" class="flex items-center gap-2">
-        <UCheckbox
-          :model-value="todo.done"
-          aria-label="faite"
-          @update:model-value="toggle(todo, $event as boolean)"
-        />
+        <UCheckbox :model-value="todo.done" aria-label="faite" @update:model-value="toggle(todo, $event as boolean)" />
         <UInput
           :model-value="todo.title"
           aria-label="titre"

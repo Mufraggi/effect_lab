@@ -141,7 +141,10 @@ const assertEqual = (actual: unknown, expected: unknown, note: string) => {
 
 const doneFlags = (b: Board) => b.todos.map((t) => t.steps.map((s) => s.done))
 
-// biome-ignore format: la table se lit comme de la prose, un tuple ["ce que ça prouve", () => { … }] par entrée. Le formatteur éclate chaque tuple sur cinq lignes et noie l'énoncé ; aucune option ne garde la forme compacte.
+// La table se lit comme de la prose : un tuple ["ce que ça prouve", () => { … }]
+// par entrée. Le formatteur éclate chaque tuple sur cinq lignes et noie
+// l'énoncé ; aucune option ne garde la forme compacte.
+// oxfmt-ignore
 const tests: Array<[string, () => void]> = [
   ["getAll on a two-level traversal yields the ARRAYS, not the elements", () => {
     const focused = Optic.getAll(_stepLists)(board)

@@ -19,7 +19,7 @@ export const Meta = Schema.Struct({
 export type Meta = typeof Meta.Type
 
 export const Post = Schema.Struct({
-  id: Schema.Number,
+  id: Schema.Finite,
   title: Schema.String,
   body: Schema.String,
   author: Author,

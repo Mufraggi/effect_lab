@@ -45,15 +45,18 @@ const tags = opticField(draft, pristine, _tagsAsText)
  * A different id is a different edit, so it starts clean: no field ever carries
  * over from one post to another.
  */
-watch(() => props.post, (next, previous) => {
-  if (previous?.id !== next.id) {
-    draft.value = next
+watch(
+  () => props.post,
+  (next, previous) => {
+    if (previous?.id !== next.id) {
+      draft.value = next
+      base.value = next
+      return
+    }
+    draft.value = rebaseDraft(next, draft.value, base.value)
     base.value = next
-    return
   }
-  draft.value = rebaseDraft(next, draft.value, base.value)
-  base.value = next
-})
+)
 
 /**
  * `publishedAt` is derived from `visibility` by `applyPatch`, which drops the
@@ -99,12 +102,7 @@ const save = () => {
           </template>
           <UFieldGroup class="w-full">
             <UInput v-model="title.model.value" class="flex-1" />
-            <UButton
-              color="neutral"
-              variant="subtle"
-              :disabled="!title.dirty.value"
-              @click="title.reset()"
-            >
+            <UButton color="neutral" variant="subtle" :disabled="!title.dirty.value" @click="title.reset()">
               reset
             </UButton>
           </UFieldGroup>
@@ -116,12 +114,7 @@ const save = () => {
           </template>
           <UFieldGroup class="w-full">
             <UTextarea v-model="body.model.value" :rows="3" class="flex-1" />
-            <UButton
-              color="neutral"
-              variant="subtle"
-              :disabled="!body.dirty.value"
-              @click="body.reset()"
-            >
+            <UButton color="neutral" variant="subtle" :disabled="!body.dirty.value" @click="body.reset()">
               reset
             </UButton>
           </UFieldGroup>
@@ -133,12 +126,7 @@ const save = () => {
           </template>
           <UFieldGroup class="w-full">
             <UInput v-model="author.model.value" class="flex-1" />
-            <UButton
-              color="neutral"
-              variant="subtle"
-              :disabled="!author.dirty.value"
-              @click="author.reset()"
-            >
+            <UButton color="neutral" variant="subtle" :disabled="!author.dirty.value" @click="author.reset()">
               reset
             </UButton>
           </UFieldGroup>
@@ -151,9 +139,7 @@ const save = () => {
           <UFieldGroup class="w-full">
             <!-- .lazy: the Iso normalises the text, so only run it on change, not per keystroke. -->
             <UInput v-model.lazy="tags.model.value" placeholder="effect, optics" class="flex-1" />
-            <UButton color="neutral" variant="subtle" @click="normaliseTags()">
-              tout en minuscules
-            </UButton>
+            <UButton color="neutral" variant="subtle" @click="normaliseTags()"> tout en minuscules </UButton>
           </UFieldGroup>
         </UFormField>
 

@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/@effect/language-service/schema.json",
+
+  // Le plugin LSP d'Effect, et rien d'autre : chaque package garde ses propres
+  // `compilerOptions` et se contente d'`extends` ce fichier. Les six tsconfig
+  // n'ont pas de base commune (le front est en `bundler`/`noEmit`, les autres
+  // en `NodeNext` avec émission), donc ce fichier ne cherche pas à en être une
+  // — il n'existe que pour que la config du LSP tienne à un seul endroit.
+  //
+  // Le plugin ne tourne que dans l'éditeur : `tsc` ne charge pas les LSP, donc
+  // `pnpm typecheck` et la CI ne voient aucun de ces diagnostics. Les faire
+  // remonter au build demande `pnpm effect-language-service patch`, qui
+  // réécrit `node_modules/typescript` — pas fait ici, c'est un choix séparé.
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "@effect/language-service"
+      }
+    ]
+  }
+}

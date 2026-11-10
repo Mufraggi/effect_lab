@@ -1,21 +1,26 @@
 {
   "name": "effect_lab",
   "private": true,
-  "packageManager": "pnpm@10.20.0",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
     "test": "turbo test",
     "typecheck": "turbo typecheck",
-    "lint": "biome lint .",
-    "format": "biome format --write .",
-    "check": "biome check --write ."
+    "lint": "effect-tsgo oxlint --type-aware",
+    "format": "oxfmt .",
+    "check": "oxfmt . && effect-tsgo oxlint --type-aware --fix",
+    "format:check": "oxfmt --check ."
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
+    "@effect/language-service": "^0.87.5",
+    "@effect/tsgo": "0.67.5",
+    "oxfmt": "0.78.0",
+    "oxlint": "1.92.0",
+    "oxlint-tsgolint": "7.0.2006",
     "turbo": "^2.5.0",
     "typescript": "^5.8.0"
   },
+  "packageManager": "pnpm@10.20.0",
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",

@@ -3,7 +3,7 @@ import { Schema } from "effect"
 import { Post, PostPatch, Retag } from "./schemas.js"
 import { CreatedTodoList, TodoList } from "./todos/lists.js"
 
-export class NotFound extends Schema.TaggedError<NotFound>()("NotFound", {}) {}
+export class NotFound extends Schema.TaggedError<NotFound, { readonly brand: unique symbol }>()("NotFound", {}) {}
 
 /**
  * The status-annotated schema, declared once and shared by every endpoint that
@@ -19,16 +19,18 @@ export class PostsApi extends HttpApiGroup.make("posts")
     }),
     HttpApiEndpoint.get("post", "/:id", {
       params: {
-        // Path params are coerced from their string form automatically,
-        // so `Schema.Number` is correct here.
-        id: Schema.Number
+        // Path params are coerced from their string form automatically, so a
+        // plain number schema is correct here. `Finite` rather than `Number`:
+        // an id is never `NaN` or `Infinity`, and the coercion would otherwise
+        // let `/posts/Infinity` through.
+        id: Schema.Finite
       },
       success: Post,
       error: NotFoundError
     }),
     HttpApiEndpoint.patch("updatePost", "/:id", {
       params: {
-        id: Schema.Number
+        id: Schema.Finite
       },
       payload: PostPatch,
       success: Post,
