@@ -5,6 +5,7 @@
   "scripts": {
     "import": "tsx --env-file-if-exists=../../.env",
     "import:pokemon": "tsx --env-file-if-exists=../../.env src/imports/pokemon.ts",
+    "export:pokemon": "tsx --env-file-if-exists=../../.env src/exports/pokemon.ts",
     "query:pokemon": "tsx --env-file-if-exists=../../.env src/queries/pokemon.ts",
     "typecheck": "tsc --noEmit"
   },

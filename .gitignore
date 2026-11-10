@@ -10,6 +10,10 @@ coverage
 .idea
 .mcp.json
 
+# Sortie par défaut de `export:pokemon`. Ancré et suffixé d'un `/` exprès :
+# un `exports` nu masquerait aussi `apps/scripts/src/exports/`, le code source.
+/apps/scripts/exports/
+
 # Écrits par le plugin Vite de Nuxt UI à chaque build d'apps/web. oxfmt et
 # Oxlint lisent ce fichier, donc les exclure ici les exclut aussi du format
 # et du lint.
