@@ -15,6 +15,7 @@ dist
 .github
 .idea
 .vscode
+.zed
 .claude
 .DS_Store
 coverage

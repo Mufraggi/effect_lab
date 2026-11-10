@@ -86,10 +86,22 @@ que le plugin, pour que la config LSP tienne à un endroit. Il apporte aussi
 les refactors (async → `Effect.gen`, Layer Magic, pipe ↔ datafirst) que la
 ligne de commande ne donne pas.
 
-Sous WebStorm il faut avoir sélectionné le TypeScript du workspace dans
-Settings → Languages & Frameworks → TypeScript, sinon le plugin n'est jamais
-chargé et rien ne remonte. `tsc` non plus ne charge pas les plugins : aucun
-de ces diagnostics n'apparaît dans `pnpm typecheck` ni en CI.
+Le piège commun à tous les éditeurs : un tsserver qui n'est pas celui du
+projet ne résout pas `@effect/language-service` et ignore le bloc `plugins`
+**en silence** — pas de diagnostic, et rien qui dise que ça ne marche pas.
+Il faut donc dans tous les cas le TypeScript du workspace.
+
+- **Zed** : déjà fait, `.zed/settings.json` pose
+  `vtsls.autoUseWorkspaceTsdk`. Rien à toucher.
+- **JetBrains** : manuel, Settings → Languages & Frameworks → TypeScript,
+  choisir la version du workspace. Non commitable, ça vit dans `.idea/` qui
+  est gitignoré.
+- **VS Code** : « TypeScript: Select TypeScript Version » → « Use workspace
+  version ».
+
+`tsc` non plus ne charge pas les plugins : aucun de ces diagnostics
+n'apparaît dans `pnpm typecheck` ni en CI — c'est `pnpm lint` qui les porte
+là-bas.
 
 **En ligne de commande** : `pnpm lint`, qui est le même Oxlint que pour le
 reste du lint — les règles Effect y sont un plugin parmi les autres. Jeu de
