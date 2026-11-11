@@ -2,14 +2,20 @@
 
 Lab Effect pour les articles. Monorepo [Turborepo](https://turbo.build) + pnpm, sur **Effect 4**.
 
-Le premier article de la série porte sur `Optic`. Ce repo en est la démonstration exécutable : chaque affirmation de l'article correspond à du code qui tourne et à une assertion qui le vérifie.
+Trois articles s'appuient dessus. Ce repo en est la démonstration exécutable : chaque affirmation correspond à du code qui tourne et à une assertion qui le vérifie.
+
+| Article                                                                                      | Le code qui le soutient                                                           |
+| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [Effect v4 deep dive: Optic](https://mufraggi.eu/articles/effect-v4-deep-dive-optic/)        | `packages/shared/src/optics.ts`, `apps/web/src/shared/opticField.ts`              |
+| [Effect v4 deep dive: local first](https://mufraggi.eu/articles/effect-v4-deep-dive-local-first/) | `packages/shared/src/todos/`, `apps/api/src/features/todos/eventlog.ts`           |
+| [Effect v4: CSV parsing](https://mufraggi.eu/articles/effect-v4-csv-parsing/)                | `apps/scripts/src/pokemon/schema.ts`, `imports/pokemon.ts`, `exports/pokemon.ts`  |
 
 ## Structure
 
 - `packages/shared` — le domaine partagé : schémas `effect/Schema`, contrat `HttpApi`, **et les optics**
 - `apps/api` — backend Effect (`effect/http-api`), état dans un `Ref` au sein d'un service
 - `apps/web` — frontend Vite + Vue 3 (`@effect/atom-vue`, proxy `/api` vers le back)
-- `apps/scripts` — scripts d'import ponctuels contre la base de l'API (lancés avec `tsx`, voir son README)
+- `apps/scripts` — scripts ponctuels contre la base de l'API, lancés avec `tsx` : l'import/export CSV Pokémon et les requêtes (voir son README)
 - `packages/db` — client Postgres et migrations (`effect/sql/Migrator`), appliquées au démarrage de l'API (voir son README)
 - `packages/exemple` — snippets isolés pour l'article
 
