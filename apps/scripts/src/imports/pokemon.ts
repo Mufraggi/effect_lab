@@ -3,9 +3,18 @@
  * response body piped through the CSV channel, one `Pokemon` per row as it
  * arrives (no temp file), written 100 rows at a time.
  *
- * The whole import is one transaction: a non-2xx response (`HttpClientError`),
- * a bad row (`SchemaError` naming the column) or a rejected insert (`SqlError`)
- * rolls everything back. Re-running it is a no-op (every insert is an upsert).
+ * The whole import is one transaction: a non-2xx response or one that never
+ * arrives (`HttpClientError`), a bad row (`SchemaError` naming the column), a
+ * rejected insert (`SqlError`) or the ceiling below (`TimeoutError`) rolls
+ * everything back. Re-running it is a no-op (every insert is an upsert).
+ *
+ * Both bounds are written here because nothing underneath provides one:
+ * `makeUndici` disables undici's own timeouts and leaves them to Effect.
+ * `HttpClient.timeout` bounds each attempt and ends when the response headers
+ * arrive; `Effect.timeout` is a ceiling on the whole import, and the only
+ * thing covering the body. Hitting it interrupts the fiber, and
+ * `withTransaction` rolls back on interruption exactly as it does on failure,
+ * so a cut import never commits half a CSV.
  *
  *   pnpm --filter @effect_lab/scripts import:pokemon
  */
@@ -23,6 +32,7 @@ const program = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
   const client = (yield* HttpClient.HttpClient).pipe(
     HttpClient.filterStatusOk,
+    HttpClient.timeout("30 seconds"),
     HttpClient.retryTransient({ times: 3, schedule: Schedule.exponential("500 millis") })
   )
 
@@ -41,7 +51,8 @@ const program = Effect.gen(function* () {
       () => 0,
       (total, n) => total + n
     ),
-    sql.withTransaction
+    sql.withTransaction,
+    Effect.timeout("5 minutes")
   )
 
   yield* Effect.log(`${imported} Pokémon importés`)
